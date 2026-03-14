@@ -17,15 +17,14 @@ from datetime import date
 import pandas as pd
 
 
-def _latest_quarter_end() -> str:
-    """Return the most recent published quarter-end date as YYYYMMDD string."""
+def _quarter_end_candidates() -> list[str]:
+    """Return recent quarter-end candidates in newest-first order."""
     today_s = date.today().strftime("%Y%m%d")
-    # Walk forward through candidate quarter-ends for the past 2 years
     candidates = []
-    for year in range(date.today().year - 1, date.today().year + 1):
+    for year in range(date.today().year - 2, date.today().year + 1):
         for q in ("0331", "0630", "0930", "1231"):
             candidates.append(f"{year}{q}")
-    return max(d for d in candidates if d <= today_s)
+    return sorted((d for d in candidates if d <= today_s), reverse=True)
 
 
 def fetch_valuation(code: str) -> dict:
@@ -41,13 +40,13 @@ def fetch_valuation(code: str) -> dict:
     result: dict = {}
 
     # ── ① Latest earnings summary ────────────────────────────────────────────
-    quarter_end = _latest_quarter_end()
-    try:
-        yjbb = ak.stock_yjbb_em(date=quarter_end)
-        row = yjbb[yjbb["股票代码"] == code]
-        if row.empty:
-            print(f"[valuation] {code} not found in yjbb for {quarter_end}")
-        else:
+    for quarter_end in _quarter_end_candidates():
+        try:
+            yjbb = ak.stock_yjbb_em(date=quarter_end)
+            row = yjbb[yjbb["股票代码"] == code]
+            if row.empty:
+                continue
+
             r = row.iloc[0]
             result["eps"]             = r.get("每股收益")
             result["revenue"]         = r.get("营业总收入-营业总收入")
@@ -59,8 +58,12 @@ def fetch_valuation(code: str) -> dict:
             result["gross_margin"]    = r.get("销售毛利率")
             result["industry"]        = r.get("所处行业")
             result["report_date"]     = r.get("最新公告日期")
-    except Exception as e:
-        print(f"[valuation] stock_yjbb_em failed: {e}")
+            result["earnings_date"]   = quarter_end
+            break
+        except Exception as e:
+            print(f"[valuation] stock_yjbb_em failed for {quarter_end}: {e}")
+    else:
+        print(f"[valuation] {code} not found in recent yjbb quarters")
 
     # ── ② Derive PE (TTM) and PB from last close ─────────────────────────────
     # Caller should pass last_close; we leave these as None here and let

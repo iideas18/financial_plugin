@@ -26,6 +26,15 @@ GRID     = "#2a2a4a"
 COL_UP   = "#26a69a"
 COL_DOWN = "#ef5350"
 
+matplotlib.rcParams["font.sans-serif"] = [
+    "Microsoft YaHei",
+    "SimHei",
+    "Noto Sans CJK SC",
+    "Arial Unicode MS",
+    "DejaVu Sans",
+]
+matplotlib.rcParams["axes.unicode_minus"] = False
+
 
 def _style_ax(ax: plt.Axes) -> None:
     ax.set_facecolor(BG)

@@ -1,145 +1,91 @@
-# financial_plugin
+# skill_to_windows
 
-A collection of AI agent skills for financial analysis. Currently includes **stock-kline-analysis** — auto-detect market, fetch K-line data, compute technical indicators, generate charts, and deliver structured analysis with valuation context and event-aware risk notes.
+This repository is a small VS Code skill workspace focused on two things:
 
----
+- authoring and refining custom agent skills under `.github/skills/`
+- validating that those skills work well in a Windows-first environment
 
-## Skills
+At the moment the workspace contains a Windows-porting skill and a stock analysis skill.
 
-| Skill | Description |
-|---|---|
-| [`stock-kline-analysis`](stock-kline-analysis/SKILL.md) | K-line chart + MA/Bollinger/MACD/RSI/ATR analysis for A-share, HK, and US stocks |
+## Included Skills
 
----
+### transfer-skill-to-windows
 
-## How to Add This as a Skill
+Path: `.github/skills/transfer-skill-to-windows/SKILL.md`
 
-### GitHub Copilot (VS Code)
+Purpose:
 
-1. **Copy the skill folder** into your project's `.github/skills/` directory (create it if it doesn't exist):
+- adapt an existing skill folder or zip file so it works on Windows
+- detect Unix-only commands, shell assumptions, hardcoded paths, and packaging issues
+- produce a separate `_windows_ready` output by default
+- rebuild and verify the zip artifact when the input is a zip file
 
-   ```bash
-   # From your project root
-   mkdir -p .github/skills
-   cp -r /path/to/stock-kline-analysis .github/skills/
-   ```
+Typical use cases:
 
-   Or clone directly:
+- convert a bash-oriented skill for PowerShell users
+- fix a partially converted Windows copy
+- validate that docs, scripts, and packaged output all match
 
-   ```bash
-   git clone https://github.com/iideas18/financial_plugin.git /tmp/financial_plugin
-   cp -r /tmp/financial_plugin/stock-kline-analysis .github/skills/
-   ```
+Example prompts:
 
-2. **Reference the skill** in your Copilot instructions file (`.github/copilot-instructions.md`):
+- `transfer this skill folder to Windows: C:\skills\my-skill`
+- `adapt this zip for Windows support: C:\downloads\some-skill.zip`
 
-   ```markdown
-   ## Skills
-   
-   Use the skill at `.github/skills/stock-kline-analysis/SKILL.md` when the user asks about
-   stock analysis, K-line charts, or technical indicators.
-   ```
+### stock-kline-analysis
 
-3. **Use it** — in Copilot Chat (`Ctrl+Shift+I`), just ask naturally:
+Path: `.github/skills/stock-kline-analysis/SKILL.md`
 
-   ```
-   Analyze 600519
-   K-line chart for AAPL
-   Compare 000001 and 600036
-   ```
+Purpose:
 
----
+- resolve stock identifiers across A-share, HK, and US markets
+- fetch daily, weekly, and monthly K-line data
+- compute indicators such as MA, Bollinger Bands, MACD, RSI, and ATR
+- generate charts and a structured analysis report
+- support multi-symbol relative strength and portfolio-style comparison
 
-### Claude Code (Anthropic Claude CLI)
+Implementation scripts live in `.github/skills/stock-kline-analysis/scripts/`.
 
-1. **Copy the skill** to your project's `.claude/skills/` directory:
+## Repository Layout
 
-   ```bash
-   mkdir -p .claude/skills
-   cp -r /path/to/stock-kline-analysis .claude/skills/
-   ```
-
-2. **Register the skill** in your project's `CLAUDE.md` (create at project root if absent):
-
-   ```markdown
-   ## Skills
-   
-   <skill>
-   <name>stock-kline-analysis</name>
-   <description>
-     Given a stock name or code, auto-detect its market, fetch 6-month daily K-line,
-     plot candlestick + MA/Bollinger/MACD/RSI/ATR with multi-timeframe confirmation,
-     and deliver structured analysis with trend, momentum, valuation context,
-     portfolio-relative strength, and event-aware risk notes.
-   </description>
-   <file>.claude/skills/stock-kline-analysis/SKILL.md</file>
-   </skill>
-   ```
-
-3. **Use it** — in any Claude Code session:
-
-   ```
-   Analyze 贵州茅台
-   How is TSLA doing technically?
-   Compare 600519 and 000858 by relative strength
-   ```
-
----
-
-### OpenClaw
-
-1. **Place the skill folder** under your OpenClaw agent directory (typically `.agents/skills/`):
-
-   ```bash
-   mkdir -p .agents/skills
-   cp -r /path/to/stock-kline-analysis .agents/skills/
-   ```
-
-2. **Register the skill** by adding an entry to your agent configuration (`.agents/config.yaml` or equivalent):
-
-   ```yaml
-   skills:
-     - name: stock-kline-analysis
-       description: >
-         Given a stock name or code, auto-detect its market, fetch 6-month daily K-line,
-         plot candlestick + MA/Bollinger/MACD/RSI/ATR with multi-timeframe confirmation,
-         and deliver structured analysis with trend, momentum, valuation context,
-         portfolio-relative strength, and event-aware risk notes.
-       file: .agents/skills/stock-kline-analysis/SKILL.md
-   ```
-
-3. **Use it** — invoke the agent as usual; it will auto-route stock analysis requests to this skill.
-
----
-
-## Quick Start (standalone scripts)
-
-Install dependencies:
-
-```bash
-pip install akshare pandas matplotlib mplfinance
+```text
+.
+├── .github/
+│   └── skills/
+│       ├── stock-kline-analysis/
+│       │   ├── SKILL.md
+│       │   └── scripts/
+│       └── transfer-skill-to-windows/
+│           └── SKILL.md
+├── .vscode/
+└── README.md
 ```
 
-Run analysis directly:
+## How To Use
 
-```bash
-python stock-kline-analysis/scripts/run_analysis.py 600519
-python stock-kline-analysis/scripts/run_analysis.py AAPL --out-dir /tmp/reports
-python stock-kline-analysis/scripts/run_analysis.py 贵州茅台
-```
+Open this workspace in VS Code with GitHub Copilot Chat enabled.
 
----
+The skills are workspace-scoped, so prompts that match their intent can use the definitions in `.github/skills/` directly. In practice, that means you can ask for Windows conversion of another skill or ask for stock K-line analysis without having to restate the full workflow each time.
 
-## Repository
+## Windows Notes
 
-```
-stock-kline-analysis/
-├── SKILL.md          # Skill definition (instructions for AI agents)
-└── scripts/
-    ├── run_analysis.py   # CLI orchestrator
-    ├── fetch_kline.py    # Multi-timeframe K-line fetch
-    ├── indicators.py     # MA / Bollinger / MACD / RSI / ATR
-    ├── chart.py          # 4-panel matplotlib chart
-    ├── valuation.py      # EPS / PE / PB / ROE
-    └── events.py         # Macro event calendar overlay
-```
+This workspace is intentionally biased toward Windows validation.
+
+Design assumptions:
+
+- prefer PowerShell-compatible commands for examples and helper scripts
+- avoid machine-specific absolute paths in docs and code
+- keep Unix shell files only when they are preserved for cross-platform compatibility
+- when converting zipped skills, verify both the edited folder and the rebuilt zip
+
+## Development Notes
+
+If you add more skills to this repository:
+
+1. place them under `.github/skills/<skill-name>/`
+2. keep the skill root name aligned with the `name` field in `SKILL.md`
+3. avoid hardcoded local paths in docs, tests, and scripts
+4. if the skill ships as a zip conversion target, validate the packaged artifact as well as the extracted folder
+
+## Status
+
+This repository is currently a working skill sandbox rather than a packaged product. The main source of truth is the `SKILL.md` file inside each skill folder.
