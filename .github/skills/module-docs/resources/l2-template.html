@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  L2 TEMPLATE — Sub-Module Deep-Dive Page
+  Replace all {{PLACEHOLDERS}} before use:
+    {{MODULE_NAME}}      — Parent module display name (e.g., "Coho")
+    {{SUBMOD_NAME}}      — Sub-module display name (e.g., "fe")
+    {{SUBMOD_TITLE}}     — Brief title (e.g., "Front-End Pipeline")
+    {{SUBMOD_PURPOSE}}   — One-line purpose
+    {{SUBMOD_DESC}}      — 2-3 sentence description
+    {{MODULE_THEME_KEY}} — localStorage key prefix, same as L1 (e.g., "coho")
+    {{LANG}}             — Code language class (e.g., "cpp", "python", "typescript")
+-->
+<title>{{MODULE_NAME}} {{SUBMOD_NAME}} — {{SUBMOD_TITLE}}</title>
+<style>
+/* === Dark theme (default) === */
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--text-muted:#8b949e;--accent:#58a6ff;--accent2:#3fb950;--accent3:#d29922;--accent4:#f85149;--heading:#f0f6fc;--code-bg:#1c2128;--table-even:#161b22;--table-odd:#0d1117}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;max-width:1200px;margin:0 auto;padding:2rem 2rem 4rem}
+h1{color:var(--heading);font-size:2.4rem;margin:1rem 0;border-bottom:2px solid var(--accent);padding-bottom:.6rem}
+h2{color:var(--accent);font-size:1.7rem;margin:2.5rem 0 1rem;border-bottom:1px solid var(--border);padding-bottom:.4rem}
+h3{color:var(--heading);font-size:1.3rem;margin:1.8rem 0 .6rem}
+h4{color:var(--accent2);font-size:1.1rem;margin:1.2rem 0 .4rem}
+p{margin:.6rem 0}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.badge{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:12px;margin-right:6px;color:#000}
+.badge.blue{background:var(--accent)}.badge.green{background:var(--accent2)}.badge.yellow{background:var(--accent3)}.badge.red{background:var(--accent4)}
+.hero{background:linear-gradient(135deg,#1a2332 0%,#0d1117 100%);border:1px solid var(--border);border-radius:12px;padding:2rem;margin:1.5rem 0 2rem;text-align:center}
+.hero p{color:var(--text-muted);font-size:1.1rem}.hero .subtitle{color:var(--accent);font-size:1.3rem;margin-bottom:.5rem}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}
+th{background:var(--surface);color:var(--accent);text-align:left;padding:10px 14px;border:1px solid var(--border)}
+td{padding:10px 14px;border:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:var(--table-even)}tr:nth-child(odd) td{background:var(--table-odd)}
+code{background:var(--code-bg);color:var(--accent2);padding:2px 6px;border-radius:4px;font-size:.88rem;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;overflow-x:auto;margin:1rem 0;font-size:.85rem;line-height:1.5}
+pre code{background:none;padding:0}
+.diagram-container{background:var(--bg);border-radius:10px;padding:1.5rem;margin:1.2rem 0;overflow-x:auto;border:1px solid var(--border)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin:1rem 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.card h4{margin-top:0}.card p{font-size:.9rem;color:var(--text-muted)}
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem 1.8rem;margin:1.5rem 0;columns:2;column-gap:2rem}
+.toc ol{padding-left:1.2rem}.toc li{margin:.35rem 0;break-inside:avoid}
+.toc a{color:var(--text)}.toc a:hover{color:var(--accent)}
+.stat-row{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0}
+.stat-box{flex:1;min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center}
+.stat-box .num{font-size:2rem;font-weight:700;color:var(--accent)}
+.stat-box .label{font-size:.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.breadcrumb{font-size:.85rem;color:var(--text-muted);margin-bottom:.5rem;padding:.4rem 0}
+.breadcrumb a{color:var(--accent);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
+.footer{text-align:center;color:var(--text-muted);font-size:.85rem;margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border)}
+@media(max-width:768px){body{padding:1rem}.toc{columns:1}.card-grid{grid-template-columns:1fr}}
+
+/* === Light theme === */
+[data-theme="light"]{--bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;--text:#1f2328;--text-muted:#656d76;--accent:#0969da;--accent2:#1a7f37;--accent3:#9a6700;--accent4:#cf222e;--heading:#1f2328;--code-bg:#f6f8fa;--table-even:#f6f8fa;--table-odd:#ffffff}
+[data-theme="light"] .hero{background:linear-gradient(135deg,#f0f4f8 0%,#ffffff 100%)}
+[data-theme="light"] .badge{color:#fff}
+[data-theme="light"] .card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+
+/* === Theme toggle button === */
+.theme-toggle{position:fixed;top:1rem;right:1rem;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text);transition:background .2s,border-color .2s;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.theme-toggle:hover{border-color:var(--accent)}
+</style>
+
+<!-- Mermaid.js (diagrams) — startOnLoad:false so footer JS controls theme -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:false,theme:"default",flowchart:{useMaxWidth:true,htmlLabels:true,curve:"basis"}});</script>
+
+<!-- Highlight.js (syntax highlighting) -->
+<link id="hljs-theme" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" title="Toggle light/dark theme">&#9790;</button>
+
+<nav class="breadcrumb"><a href="../index.html">{{MODULE_NAME}}</a> &rsaquo; <span>{{SUBMOD_NAME}}</span></nav>
+
+<h1>{{MODULE_NAME}}/{{SUBMOD_NAME}}/ &mdash; {{SUBMOD_TITLE}}</h1>
+<div class="hero">
+  <p class="subtitle">{{SUBMOD_PURPOSE}}</p>
+  <p>{{SUBMOD_DESC}}</p>
+</div>
+
+<!-- STAT ROW — customize metrics -->
+<div class="stat-row">
+  <div class="stat-box"><div class="num">N</div><div class="label">Classes</div></div>
+  <div class="stat-box"><div class="num">N</div><div class="label">Files</div></div>
+  <div class="stat-box"><div class="num">~N k</div><div class="label">Lines</div></div>
+  <div class="stat-box"><div class="num">N</div><div class="label">Key Metric</div></div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<h2>Contents</h2>
+<nav class="toc"><ol>
+  <li><a href="#architecture">Architecture</a></li>
+  <li><a href="#key-classes">Key Classes</a></li>
+  <li><a href="#data-structures">Data Structures</a></li>
+  <li><a href="#interactions">Interactions</a></li>
+  <li><a href="#configuration">Configuration</a></li>
+  <li><a href="#code-examples">Code Examples</a></li>
+</ol></nav>
+
+<!-- ARCHITECTURE DIAGRAM — no hardcoded style lines! -->
+<h2 id="architecture">Architecture</h2>
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TD
+  A["Component A"] --> B["Component B"]
+  B --> C["Component C"]
+  C --> D["Component D"]
+</pre>
+</div>
+
+<!-- KEY CLASSES TABLE -->
+<h2 id="key-classes">Key Classes</h2>
+<table>
+  <tr><th>Class / Function</th><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>ClassName</code></td><td>file.h</td><td>Brief description</td></tr>
+  <!-- Add rows -->
+</table>
+
+<!-- DATA STRUCTURES -->
+<h2 id="data-structures">Data Structures</h2>
+<table>
+  <tr><th>Type</th><th>Name</th><th>Description</th></tr>
+  <tr><td>enum</td><td><code>EnumName</code></td><td>Brief description</td></tr>
+  <!-- Add rows -->
+</table>
+
+<!-- INTERACTIONS -->
+<h2 id="interactions">Interactions</h2>
+<table>
+  <tr><th>Direction</th><th>Partner</th><th>Interface</th><th>Description</th></tr>
+  <tr><td>&rarr;</td><td>Other Module</td><td><code>methodName()</code></td><td>Brief description</td></tr>
+  <!-- Add rows -->
+</table>
+
+<!-- CONFIGURATION -->
+<h2 id="configuration">Configuration</h2>
+<table>
+  <tr><th>Knob / Parameter</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>param_name</code></td><td>value</td><td>What it controls</td></tr>
+  <!-- Add rows -->
+</table>
+
+<!-- CODE EXAMPLES -->
+<h2 id="code-examples">Code Examples</h2>
+<h3>Example: Typical Usage</h3>
+<pre><code class="language-{{LANG}}">// Replace with actual code example
+void example() {
+    // ...
+}
+</code></pre>
+
+<!-- FOOTER -->
+<div class="footer"><a href="../index.html">&larr; Back to {{MODULE_NAME}} Overview</a></div>
+
+<script>
+// Save original mermaid source before any rendering
+document.querySelectorAll('pre.mermaid').forEach(function(el){
+  if(!el.getAttribute('data-source')) el.setAttribute('data-source',el.textContent);
+});
+// Theme toggle
+(function(){
+  var btn=document.getElementById('themeToggle');
+  var hljsLink=document.getElementById('hljs-theme');
+  var darkHL='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css';
+  var lightHL='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css';
+  function renderMermaid(t){
+    var nodes=document.querySelectorAll('pre.mermaid');
+    if(!nodes.length||!window.mermaid) return;
+    nodes.forEach(function(el){
+      var src=el.getAttribute('data-source');
+      if(src){ el.removeAttribute('data-processed'); el.textContent=src; }
+    });
+    try{mermaid.initialize({startOnLoad:false,theme:(t==='light')?'default':'dark',flowchart:{useMaxWidth:true,htmlLabels:true,curve:'basis'}});mermaid.run();}catch(e){console.warn('mermaid re-render:',e);}
+  }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    hljsLink.href=(t==='light')?lightHL:darkHL;
+    btn.innerHTML=(t==='light')?'&#9728;':'&#9790;';
+    localStorage.setItem('{{MODULE_THEME_KEY}}-theme',t);
+    renderMermaid(t);
+  }
+  var saved=localStorage.getItem('{{MODULE_THEME_KEY}}-theme')||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
+  applyTheme(saved);
+  btn.addEventListener('click',function(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');});
+})();
+hljs.highlightAll();
+</script>
+</body>
+</html>
