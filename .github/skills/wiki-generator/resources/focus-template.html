@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="wiki-generated" content="{{DATE}}">
+<meta name="wiki-source" content="{{SOURCE_PATH}}">
+<meta name="wiki-source-rev" content="{{GIT_SHA}}">
+<meta name="wiki-focus-parent" content="{{PARENT_PAGE_PATH}}">
+<!--
+  FOCUS TEMPLATE — Deep-Dive Focus Page (topic zoom from L2)
+  
+  Use this when a topic on an L2 page deserves its own dedicated page:
+  an algorithm, a protocol, a data structure, a state machine, etc.
+
+  IMPORTANT TEMPLATE INVARIANTS — verify.sh expects focus pages to keep these:
+    - <meta name="wiki-focus-parent" ...>
+    - .skip-link and <main id="main">
+    - @media print block
+    - #backToTop button + JS
+    - .diagram-overlay + zoom JS
+    - reading time JS
+    - copy button JS for code blocks
+  Do not remove these when customizing the page.
+
+  DEEP STRUCTURE DEFAULT:
+    Focus pages should read like a standalone technical brief, not a loose notes page.
+    Prefer this section order:
+      1. overview + mental-model summary grid
+      2. decision points / control table
+      3. mechanism walkthrough
+      4. behavior diagram
+      5. annotated code walkthrough
+      6. edge cases
+      7. configuration
+      8. related topics
+  
+  Replace all {{PLACEHOLDERS}} before use:
+    {{MODULE_NAME}}      — Parent module display name (e.g., "Coho")
+    {{SUBMOD_NAME}}      — Sub-module display name (e.g., "fe")
+    {{TOPIC_NAME}}       — Focus topic name (e.g., "Branch Prediction Algorithm")
+    {{TOPIC_SLUG}}       — URL-safe slug (e.g., "branch-prediction")
+    {{TOPIC_SUBTITLE}}   — One-line subtitle
+    {{TOPIC_DESC}}       — 2-3 sentence description
+    {{TOPIC_WHAT_WHY}}   — Plain-English intro (2-4 sentences)
+    {{TOPIC_ANALOGY}}    — Real-world analogy (3-5 sentences)
+    {{PARENT_PAGE_PATH}} — Relative path back to L2 parent (e.g., "../index.html")
+    {{PROJECT_NAME}}     — Project name for breadcrumb (optional)
+    {{MODULE_THEME_KEY}} — localStorage key prefix (same as L1/L2)
+    {{LANG}}             — Code language class (e.g., "cpp", "python")
+    {{DATE}}             — Generation date (ISO format)
+    {{SOURCE_PATH}}      — Source directory path
+    {{GIT_SHA}}          — Git short commit hash
+    
+  Output location:
+    docs/<module>_doc/<submod>/<topic_slug>/index.html
+    
+  The parent L2 page links here with:
+    <a class="card" href="<topic_slug>/index.html">...</a>
+-->
+<title>{{MODULE_NAME}}/{{SUBMOD_NAME}} — {{TOPIC_NAME}}</title>
+<style>
+/* === Dark theme (default) === */
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--text-muted:#8b949e;--accent:#58a6ff;--accent2:#3fb950;--accent3:#d29922;--accent4:#f85149;--heading:#f0f6fc;--code-bg:#1c2128;--table-even:#161b22;--table-odd:#0d1117}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;max-width:1200px;margin:0 auto;padding:2rem 2rem 4rem}
+h1{color:var(--heading);font-size:2.4rem;margin:1rem 0;border-bottom:2px solid var(--accent);padding-bottom:.6rem}
+h2{color:var(--accent);font-size:1.7rem;margin:2.5rem 0 1rem;border-bottom:1px solid var(--border);padding-bottom:.4rem}
+h3{color:var(--heading);font-size:1.3rem;margin:1.8rem 0 .6rem}
+h4{color:var(--accent2);font-size:1.1rem;margin:1.2rem 0 .4rem}
+p{margin:.6rem 0}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.badge{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:12px;margin-right:6px;color:#000}
+.badge.blue{background:var(--accent)}.badge.green{background:var(--accent2)}.badge.yellow{background:var(--accent3)}.badge.red{background:var(--accent4)}
+.hero{background:linear-gradient(135deg,#1a2332 0%,#0d1117 100%);border:1px solid var(--border);border-radius:12px;padding:2rem;margin:1.5rem 0 2rem;text-align:center}
+.hero p{color:var(--text-muted);font-size:1.1rem}.hero .subtitle{color:var(--accent);font-size:1.3rem;margin-bottom:.5rem}
+.hero .focus-label{display:inline-block;background:var(--accent4);color:#fff;font-size:.7rem;font-weight:700;padding:2px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.6rem}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}
+th{background:var(--surface);color:var(--accent);text-align:left;padding:10px 14px;border:1px solid var(--border)}
+td{padding:10px 14px;border:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:var(--table-even)}tr:nth-child(odd) td{background:var(--table-odd)}
+code{background:var(--code-bg);color:var(--accent2);padding:2px 6px;border-radius:4px;font-size:.88rem;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;overflow-x:auto;margin:1rem 0;font-size:.85rem;line-height:1.5}
+pre code{background:none;padding:0}
+.diagram-container{background:var(--bg);border-radius:10px;padding:1.5rem;margin:1.2rem 0;overflow-x:auto;border:1px solid var(--border)}
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem 1.8rem;margin:1.5rem 0;columns:2;column-gap:2rem}
+.toc ol{padding-left:1.2rem}.toc li{margin:.35rem 0;break-inside:avoid}
+.toc a{color:var(--text)}.toc a:hover{color:var(--accent)}
+.breadcrumb{font-size:.85rem;color:var(--text-muted);margin-bottom:.5rem;padding:.4rem 0}
+.breadcrumb a{color:var(--accent);text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
+.footer{text-align:center;color:var(--text-muted);font-size:.85rem;margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border)}
+/* Callout boxes for annotated code walkthroughs */
+.callout{background:var(--surface);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;padding:1rem 1.2rem;margin:1rem 0;font-size:.92rem}
+.callout.warn{border-left-color:var(--accent3)}
+.callout.danger{border-left-color:var(--accent4)}
+.callout.success{border-left-color:var(--accent2)}
+.callout strong{color:var(--heading)}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1rem 0 1.5rem}
+.summary-grid .cell{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem}
+.summary-grid strong{display:block;color:var(--heading);margin-bottom:.35rem}
+/* Step-by-step code walkthrough with line annotations */
+.code-walk{counter-reset:walk-step}
+.code-walk .step{margin:1.2rem 0;counter-increment:walk-step}
+.code-walk .step::before{content:"Step " counter(walk-step);display:inline-block;background:var(--accent);color:#000;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-bottom:.4rem}
+@media(max-width:768px){body{padding:1rem}.toc{columns:1}}
+
+/* === Light theme === */
+[data-theme="light"]{--bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;--text:#1f2328;--text-muted:#656d76;--accent:#0969da;--accent2:#1a7f37;--accent3:#9a6700;--accent4:#cf222e;--heading:#1f2328;--code-bg:#f6f8fa;--table-even:#f6f8fa;--table-odd:#ffffff}
+[data-theme="light"] .hero{background:linear-gradient(135deg,#f0f4f8 0%,#ffffff 100%)}
+[data-theme="light"] .badge{color:#fff}
+[data-theme="light"] .hero .focus-label{color:#fff}
+
+/* === Theme toggle button === */
+.theme-toggle{position:fixed;top:1rem;right:1rem;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text);transition:background .2s,border-color .2s;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.theme-toggle:hover{border-color:var(--accent)}
+
+/* === Skip-link (accessibility) === */
+.skip-link{position:absolute;top:-100%;left:1rem;background:var(--accent);color:#fff;padding:.5rem 1rem;border-radius:0 0 6px 6px;z-index:2000;font-size:.9rem;text-decoration:none;transition:top .2s}
+.skip-link:focus{top:0}
+
+/* === Diagram fullscreen overlay === */
+.diagram-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:3000;align-items:center;justify-content:center;cursor:zoom-out}
+.diagram-overlay.active{display:flex}
+.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border)}
+.diagram-container{cursor:zoom-in}
+#diagramOverlay.active svg,#diagramOverlayContent svg{max-width:90vw!important;max-height:85vh!important;width:90vw!important}
+
+/* === Back-to-top button === */
+.back-to-top{position:fixed;bottom:2rem;right:2rem;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:1.3rem;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.15);transition:opacity .2s,border-color .2s}
+.back-to-top.visible{display:flex}
+.back-to-top:hover{border-color:var(--accent);color:var(--accent)}
+
+/* === Code copy button === */
+pre{position:relative}
+pre .copy-btn{position:absolute;top:.5rem;right:.5rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer;font-size:.75rem;padding:3px 8px;opacity:0;transition:opacity .2s}pre:hover .copy-btn{opacity:1}.copy-btn:hover{color:var(--accent);border-color:var(--accent)}
+
+/* === Print === */
+@media print{.theme-toggle,.skip-link,.copy-btn,.back-to-top,.diagram-overlay{display:none!important}body{max-width:100%;padding:1rem;color:#1f2328;background:#fff}:root{--bg:#fff;--surface:#f6f8fa;--border:#d0d7de;--text:#1f2328;--text-muted:#656d76;--accent:#0969da;--accent2:#1a7f37;--accent3:#9a6700;--accent4:#cf222e;--heading:#1f2328;--code-bg:#f6f8fa}.hero{background:#f0f4f8!important;border-color:#d0d7de}.diagram-container{break-inside:avoid}pre{white-space:pre-wrap;word-wrap:break-word}table{font-size:.8rem}a{color:#0969da}a[href]:after{content:" (" attr(href) ")"}.footer a[href]:after{content:none}}
+</style>
+
+<!-- Mermaid.js (diagrams) — startOnLoad:false so footer JS controls theme -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:false,theme:"default",flowchart:{useMaxWidth:true,htmlLabels:true,curve:"basis"}});</script>
+
+<!-- Highlight.js (syntax highlighting) -->
+<link id="hljs-theme" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+<button class="theme-toggle" id="themeToggle" title="Toggle light/dark theme" aria-label="Toggle light/dark theme">&#9790;</button>
+<button class="back-to-top" id="backToTop" title="Back to top" aria-label="Back to top">&#8679;</button>
+
+<!--
+  Breadcrumb for focus page:
+  - 2-level: Module › SubModule › Topic
+  - 3-level: Project › Module › SubModule › Topic
+-->
+<!-- For 2-level: -->
+<nav class="breadcrumb" role="navigation" aria-label="Breadcrumb"><a href="../../index.html">{{MODULE_NAME}}</a> &rsaquo; <a href="../index.html">{{SUBMOD_NAME}}</a> &rsaquo; <span>{{TOPIC_NAME}}</span></nav>
+<!-- For 3-level (replace above with this):
+<nav class="breadcrumb" role="navigation" aria-label="Breadcrumb"><a href="../../../index.html">{{PROJECT_NAME}}</a> &rsaquo; <a href="../../index.html">{{MODULE_NAME}}</a> &rsaquo; <a href="../index.html">{{SUBMOD_NAME}}</a> &rsaquo; <span>{{TOPIC_NAME}}</span></nav>
+-->
+
+<main id="main">
+<h1>{{TOPIC_NAME}}</h1>
+<div class="hero">
+  <div class="focus-label">Focus Deep-Dive</div>
+  <p class="subtitle">{{TOPIC_SUBTITLE}}</p>
+  <p>{{TOPIC_DESC}}</p>
+</div>
+
+<!-- WHAT & WHY INTRO BOX -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.4rem 1.6rem;margin:1.5rem 0;">
+<h3 style="margin-top:0;color:var(--accent);">&#128218; What is this &amp; why does it matter?</h3>
+<p>{{TOPIC_WHAT_WHY}} — Replace with 2-4 plain-English sentences explaining what this topic is and why a developer should understand it.</p>
+<details style="margin-top:.8rem;">
+<summary style="cursor:pointer;color:var(--accent2);font-weight:600;">&#128161; Real-world analogy</summary>
+<p style="margin-top:.5rem;padding-left:1rem;border-left:3px solid var(--accent3);color:var(--text-muted);">{{TOPIC_ANALOGY}} — A vivid metaphor for this specific topic. 3-5 sentences.</p>
+</details>
+</div>
+
+<!-- TABLE OF CONTENTS (auto-generated from H2/H3 headings by footer JS) -->
+<h2 id="contents">Contents</h2>
+<nav class="toc" id="toc"></nav>
+
+<!-- OVERVIEW DIAGRAM — high-level view of the topic's structure/flow -->
+<h2 id="overview">Overview</h2>
+<div class="summary-grid">
+  <div class="cell"><strong>Primary role</strong><p>Replace with the one-sentence job this mechanism performs inside the parent module.</p></div>
+  <div class="cell"><strong>Main inputs</strong><p>Replace with the state, packets, structures, or conditions that feed this topic.</p></div>
+  <div class="cell"><strong>Key decisions</strong><p>Replace with the most important branch or arbitration choices visible in the code.</p></div>
+  <div class="cell"><strong>Outputs / side effects</strong><p>Replace with what changes after this mechanism runs: metadata, requests, counters, state, or responses.</p></div>
+</div>
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TD
+  A["Input / Trigger"] --> B["Phase 1"]
+  B --> C["Phase 2"]
+  C --> D["Phase 3"]
+  D --> E["Output / Result"]
+</pre>
+</div>
+<p>Replace with context-specific description of the overview diagram.</p>
+
+<!-- DECISION TABLE — makes the page feel structured instead of ad hoc -->
+<h2 id="decision-points">Decision Points</h2>
+<table>
+  <tr><th>Decision</th><th>What controls it</th><th>Why it matters</th></tr>
+  <tr><td>Main branch</td><td>Condition or mask from code</td><td>Explain how it changes the path or state</td></tr>
+  <tr><td>Fallback path</td><td>Miss / error / invalid state / resource pressure</td><td>Explain the alternative behavior</td></tr>
+</table>
+
+<!-- DETAILED MECHANISM — the core of the focus page -->
+<h2 id="mechanism">How It Works</h2>
+<p>Detailed explanation of the mechanism, algorithm, or protocol. This is where the focus page adds value over the brief L2 mention. Anchor every paragraph to concrete symbols, tables, masks, counters, or states from the real code.</p>
+
+<h3 id="mechanism-step1">Phase/Step 1</h3>
+<p>Detailed explanation of the first phase. Include specific variable names, thresholds, or conditions from the source code.</p>
+<pre><code class="language-{{LANG}}">// Replace with actual code from the source
+void step1_example() {
+    // ...
+}
+</code></pre>
+<div class="callout">
+<strong>Key detail:</strong> Explain a non-obvious implementation detail visible in the code above.
+</div>
+
+<h3 id="mechanism-step2">Phase/Step 2</h3>
+<p>Continue with subsequent phases...</p>
+
+<!-- STATE DIAGRAM or SEQUENCE DIAGRAM — show the dynamic behavior -->
+<h2 id="behavior">Behavior Diagram</h2>
+<div class="diagram-container">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Active : trigger
+    Active --> Processing : start
+    Processing --> Done : complete
+    Processing --> Error : fail
+    Error --> Idle : reset
+    Done --> Idle : next
+</pre>
+</div>
+<p>Replace with description of state transitions or message sequences specific to this topic.</p>
+
+<div class="callout success">
+<strong>Writing target:</strong> this section should explain dynamic behavior that a reader would otherwise have to reconstruct by reading several functions side by side.
+</div>
+
+<!-- ANNOTATED CODE WALKTHROUGH — step-by-step through actual source -->
+<h2 id="code-walkthrough">Annotated Code Walkthrough</h2>
+<p>Walk through the actual source code step by step, with explanations between each snippet.</p>
+
+<div class="code-walk">
+<div class="step">
+<p>First, the entry point receives the input and validates it:</p>
+<pre><code class="language-{{LANG}}">// Replace with real code snippet from source
+void entry_point(Input& input) {
+    if (!validate(input)) return;
+    // ...
+}
+</code></pre>
+</div>
+
+<div class="step">
+<p>Then the core processing happens here — note the key decision point:</p>
+<pre><code class="language-{{LANG}}">// Next real code snippet
+Result process(Input& input) {
+    // The critical branch:
+    if (input.type == FAST_PATH) {
+        return fast_process(input);
+    }
+    return slow_process(input);
+}
+</code></pre>
+<div class="callout warn">
+<strong>Performance note:</strong> The fast path avoids X overhead. The slow path is taken in ~Y% of cases.
+</div>
+</div>
+
+<!-- Add more steps as needed -->
+</div>
+
+<!-- EDGE CASES & ERROR HANDLING -->
+<h2 id="edge-cases">Edge Cases &amp; Error Handling</h2>
+<table>
+  <tr><th>Scenario</th><th>Behavior</th><th>Code Location</th></tr>
+  <tr><td>Edge case 1</td><td>What happens</td><td><code>file.cc:123</code></td></tr>
+  <tr><td>Edge case 2</td><td>What happens</td><td><code>file.cc:456</code></td></tr>
+</table>
+
+<!-- CONFIGURATION relevant to this topic -->
+<h2 id="configuration">Configuration</h2>
+<table>
+  <tr><th>Knob / Parameter</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>param_1</code></td><td>value</td><td>What it controls and how it affects this topic</td></tr>
+  <tr><td><code>param_2</code></td><td>value</td><td>Description</td></tr>
+</table>
+
+<!-- RELATED TOPICS — links back to parent and sibling focus pages -->
+<h2 id="related">Related Topics</h2>
+<p>See also:</p>
+<ul>
+  <li><a href="{{PARENT_PAGE_PATH}}">{{SUBMOD_NAME}} overview</a> — the parent L2 page</li>
+  <!-- Add links to sibling focus pages or related L2 pages -->
+</ul>
+
+<!-- NOTE: Keep the page rich enough to pass verify.sh.
+     Good focus pages usually end up 400-600 lines with:
+     - 2+ Mermaid diagrams
+     - 2+ code blocks
+  - 8-10 sections with a clear overview/mechanism/behavior split
+     - 1-2 tables beyond the configuration table
+-->
+
+<!-- FOOTER -->
+<div class="footer"><a href="{{PARENT_PAGE_PATH}}">&larr; Back to {{SUBMOD_NAME}}</a> &bull; <a href="../../../glossary.html">Glossary</a></div>
+</main>
+
+<div class="diagram-overlay" id="diagramOverlay"><div class="diagram-overlay-content" id="diagramOverlayContent"></div></div>
+
+<script>
+// Auto-generate TOC from H2/H3 headings
+(function(){
+  var toc=document.getElementById('toc');if(!toc)return;
+  var headings=document.querySelectorAll('h2[id],h3[id]');
+  var ol=document.createElement('ol');
+  var currentH2Li=null;
+  headings.forEach(function(h){
+    if(h.closest('#toc,.toc'))return;
+    var li=document.createElement('li');
+    var a=document.createElement('a');a.href='#'+h.id;a.textContent=h.textContent;
+    li.appendChild(a);
+    if(h.tagName==='H3'&&currentH2Li){
+      var sub=currentH2Li.querySelector('ol');
+      if(!sub){sub=document.createElement('ol');currentH2Li.appendChild(sub);}
+      sub.appendChild(li);
+    }else{ol.appendChild(li);if(h.tagName==='H2')currentH2Li=li;}
+  });
+  toc.appendChild(ol);
+})();
+// Reading time estimate
+(function(){var m=document.querySelector('main');if(!m)return;var words=m.textContent.trim().split(/\s+/).length;var mins=Math.ceil(words/200);var hero=document.querySelector('.hero');if(hero){var rt=document.createElement('p');rt.style.cssText='font-size:.85rem;color:var(--text-muted);margin-top:.5rem';rt.textContent='\u23F1 ~'+mins+' min read';hero.appendChild(rt);}})();
+// Save original mermaid source before any rendering
+document.querySelectorAll('pre.mermaid').forEach(function(el){
+  if(!el.getAttribute('data-source')) el.setAttribute('data-source',el.textContent);
+});
+// Theme toggle
+(function(){
+  var btn=document.getElementById('themeToggle');
+  var hljsLink=document.getElementById('hljs-theme');
+  var darkHL='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css';
+  var lightHL='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css';
+  function renderMermaid(t){
+    var nodes=document.querySelectorAll('pre.mermaid');
+    if(!nodes.length||!window.mermaid) return;
+    nodes.forEach(function(el){
+      var src=el.getAttribute('data-source');
+      if(src){ el.removeAttribute('data-processed'); el.textContent=src; }
+    });
+    try{mermaid.initialize({startOnLoad:false,theme:(t==='light')?'default':'dark',flowchart:{useMaxWidth:true,htmlLabels:true,curve:'basis'}});mermaid.run();}catch(e){console.warn('mermaid re-render:',e);}
+  }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    hljsLink.href=(t==='light')?lightHL:darkHL;
+    btn.textContent=(t==='light')?'\u2600':'\u263E';
+    localStorage.setItem('{{MODULE_THEME_KEY}}-theme',t);
+    renderMermaid(t);
+  }
+  var saved=localStorage.getItem('{{MODULE_THEME_KEY}}-theme')||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
+  applyTheme(saved);
+  btn.addEventListener('click',function(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');});
+})();
+// Code copy buttons
+document.querySelectorAll('pre code').forEach(function(block){
+  var pre=block.parentElement;if(!pre||pre.classList.contains('mermaid'))return;
+  var btn=document.createElement('button');btn.className='copy-btn';btn.textContent='Copy';btn.setAttribute('aria-label','Copy code to clipboard');
+  btn.addEventListener('click',function(){navigator.clipboard.writeText(block.textContent).then(function(){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},1500);});});
+  pre.appendChild(btn);
+});
+// Diagram zoom
+(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){content.innerHTML=dc.innerHTML;overlay.classList.add('active');});});overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.remove('active');});document.addEventListener('keydown',function(e){if(e.key==='Escape')overlay.classList.remove('active');});})();
+// Back to top
+(function(){var b=document.getElementById('backToTop');window.addEventListener('scroll',function(){b.classList.toggle('visible',window.scrollY>400);});b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});})();
+// Keyboard navigation: j/k scroll H2
+(function(){var h2s=Array.from(document.querySelectorAll('h2[id]'));function currentIdx(){var scrollY=window.scrollY;for(var i=h2s.length-1;i>=0;i--){if(h2s[i].offsetTop<=scrollY+80)return i;}return -1;}document.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)return;if(e.key==='j'){var ci=currentIdx();if(ci<h2s.length-1)h2s[ci+1].scrollIntoView({behavior:'smooth'});e.preventDefault();}else if(e.key==='k'){var ci2=currentIdx();if(ci2>0)h2s[ci2-1].scrollIntoView({behavior:'smooth'});e.preventDefault();}});})();
+hljs.highlightAll();
+</script>
+</body>
+</html>

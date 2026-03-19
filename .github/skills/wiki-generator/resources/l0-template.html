@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="wiki-generated" content="{{DATE}}">
+<meta name="wiki-source" content="{{SOURCE_PATH}}">
+<meta name="wiki-source-rev" content="{{GIT_SHA}}">
+<!--
+  L0 TEMPLATE — Project Hub Page (3-level projects only)
+  Replace all {{PLACEHOLDERS}} before use:
+    {{PROJECT_NAME}}     — Project display name (e.g., "Keiko", "MyProject")
+    {{PROJECT_SUBTITLE}} — One-line subtitle
+    {{PROJECT_DESC}}     — 2-3 sentence project description
+    {{PROJECT_THEME_KEY}} — localStorage key prefix (e.g., "keiko", "myproject")
+    {{LANG}}             — Primary code language class (e.g., "cpp", "python")
+
+  This is the top-level hub for multi-module projects.
+  It links to L1 module overviews and the glossary.
+-->
+<title>{{PROJECT_NAME}} — {{PROJECT_SUBTITLE}}</title>
+<style>
+/* === Dark theme (default) === */
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--text-muted:#8b949e;--accent:#58a6ff;--accent2:#3fb950;--accent3:#d29922;--accent4:#f85149;--heading:#f0f6fc;--code-bg:#1c2128;--table-even:#161b22;--table-odd:#0d1117}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;max-width:1200px;margin:0 auto;padding:2rem 2rem 4rem}
+h1{color:var(--heading);font-size:2.4rem;margin:1rem 0;border-bottom:2px solid var(--accent);padding-bottom:.6rem}
+h2{color:var(--accent);font-size:1.7rem;margin:2.5rem 0 1rem;border-bottom:1px solid var(--border);padding-bottom:.4rem}
+h3{color:var(--heading);font-size:1.3rem;margin:1.8rem 0 .6rem}
+h4{color:var(--accent2);font-size:1.1rem;margin:1.2rem 0 .4rem}
+p{margin:.6rem 0}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.badge{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:12px;margin-right:6px;color:#000}
+.badge.blue{background:var(--accent)}.badge.green{background:var(--accent2)}.badge.yellow{background:var(--accent3)}.badge.red{background:var(--accent4)}
+.hero{background:linear-gradient(135deg,#1a2332 0%,#0d1117 100%);border:1px solid var(--border);border-radius:12px;padding:2rem;margin:1.5rem 0 2rem;text-align:center}
+.hero p{color:var(--text-muted);font-size:1.1rem}.hero .subtitle{color:var(--accent);font-size:1.3rem;margin-bottom:.5rem}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}
+th{background:var(--surface);color:var(--accent);text-align:left;padding:10px 14px;border:1px solid var(--border)}
+td{padding:10px 14px;border:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:var(--table-even)}tr:nth-child(odd) td{background:var(--table-odd)}
+code{background:var(--code-bg);color:var(--accent2);padding:2px 6px;border-radius:4px;font-size:.88rem;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;overflow-x:auto;margin:1rem 0;font-size:.85rem;line-height:1.5}
+pre code{background:none;padding:0}
+blockquote{border-left:3px solid var(--accent);margin:1rem 0;padding:.6rem 1rem;color:var(--text-muted);background:var(--surface);border-radius:0 6px 6px 0;font-style:italic}
+.diagram-container{background:var(--bg);border-radius:10px;padding:1.5rem;margin:1.2rem 0;overflow-x:auto;border:1px solid var(--border)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin:1rem 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;transition:border-color .2s,box-shadow .2s;text-decoration:none;color:inherit;display:block}
+.card:hover{border-color:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,.3);text-decoration:none}
+.card h4{margin-top:0;color:var(--accent2)}.card p{font-size:.9rem;color:var(--text-muted)}
+.stat-row{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0}
+.stat-box{flex:1;min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center}
+.stat-box .num{font-size:2rem;font-weight:700;color:var(--accent)}
+.stat-box .label{font-size:.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.footer{text-align:center;color:var(--text-muted);font-size:.85rem;margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border)}
+.footer a{color:var(--accent)}
+
+/* Module cards — L0 specific */
+.module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.2rem;margin:1.5rem 0}
+.module-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.4rem;transition:transform .15s,box-shadow .15s;cursor:pointer;text-decoration:none;color:inherit;display:block}
+.module-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.4);border-color:var(--accent);text-decoration:none}
+.module-card h3{margin:0 0 .4rem 0;color:var(--accent);font-size:1.25rem}
+.module-card .tagline{color:var(--text-muted);font-size:.9rem;margin-bottom:.6rem}
+.module-card p{color:var(--text);font-size:.88rem}
+.module-card .stats{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
+.module-card .stats span{background:var(--code-bg);padding:.15rem .5rem;border-radius:4px;font-size:.75rem;color:var(--text-muted)}
+.section-label{color:var(--accent);font-size:.85rem;text-transform:uppercase;letter-spacing:.1em;margin:2rem 0 .5rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
+
+@media(max-width:768px){body{padding:1rem}.card-grid{grid-template-columns:1fr}.module-grid{grid-template-columns:1fr}}
+
+/* === Light theme === */
+[data-theme="light"]{--bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;--text:#1f2328;--text-muted:#656d76;--accent:#0969da;--accent2:#1a7f37;--accent3:#9a6700;--accent4:#cf222e;--heading:#1f2328;--code-bg:#f6f8fa;--table-even:#f6f8fa;--table-odd:#ffffff}
+[data-theme="light"] .hero{background:linear-gradient(135deg,#f0f4f8 0%,#ffffff 100%)}
+[data-theme="light"] .badge{color:#fff}
+[data-theme="light"] .module-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.08)}
+
+/* === Theme toggle button === */
+.theme-toggle{position:fixed;top:1rem;right:1rem;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text);transition:background .2s,border-color .2s;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.theme-toggle:hover{border-color:var(--accent)}
+
+/* === Skip-link (accessibility) === */
+.skip-link{position:absolute;top:-100%;left:1rem;background:var(--accent);color:#fff;padding:.5rem 1rem;border-radius:0 0 6px 6px;z-index:2000;font-size:.9rem;text-decoration:none;transition:top .2s}
+.skip-link:focus{top:0}
+
+/* === Diagram fullscreen overlay === */
+.diagram-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:3000;align-items:center;justify-content:center;cursor:zoom-out}
+.diagram-overlay.active{display:flex}
+.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border)}
+.diagram-container{cursor:zoom-in}
+#diagramOverlay.active svg,#diagramOverlayContent svg{max-width:90vw!important;max-height:85vh!important;width:90vw!important}
+
+/* === Back-to-top button === */
+.back-to-top{position:fixed;bottom:2rem;right:2rem;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:1.3rem;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.15);transition:opacity .2s,border-color .2s}
+.back-to-top.visible{display:flex}
+.back-to-top:hover{border-color:var(--accent);color:var(--accent)}
+
+/* === Print === */
+@media print{.theme-toggle,.skip-link,.back-to-top,.diagram-overlay{display:none!important}body{max-width:100%;padding:1rem;color:#1f2328;background:#fff}:root{--bg:#fff;--surface:#f6f8fa;--border:#d0d7de;--text:#1f2328;--text-muted:#656d76;--accent:#0969da;--accent2:#1a7f37;--accent3:#9a6700;--accent4:#cf222e;--heading:#1f2328;--code-bg:#f6f8fa}.hero{background:#f0f4f8!important;border-color:#d0d7de}.module-card,.card,.stat-box{break-inside:avoid}.diagram-container{break-inside:avoid}a{color:#0969da}a[href]:after{content:" (" attr(href) ")"}.footer a[href]:after{content:none}}
+</style>
+
+<!-- Mermaid.js (diagrams) — startOnLoad:false so footer JS controls theme -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:false,theme:"default",flowchart:{useMaxWidth:true,htmlLabels:true,curve:"basis"}});</script>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+<button class="theme-toggle" id="themeToggle" title="Toggle light/dark theme" aria-label="Toggle light/dark theme">&#9790;</button>
+<button class="back-to-top" id="backToTop" title="Back to top" aria-label="Back to top">&#8679;</button>
+
+<main id="main">
+<h1>{{PROJECT_NAME}}</h1>
+<div class="hero">
+  <div class="subtitle">{{PROJECT_SUBTITLE}}</div>
+  <p>{{PROJECT_DESC}}</p>
+  <p style="margin-top:.8rem">
+    <span class="badge blue">Badge-1</span>
+    <span class="badge green">Badge-2</span>
+    <span class="badge yellow">Badge-3</span>
+  </p>
+</div>
+
+<!-- SYSTEM ARCHITECTURE — shows all major modules and their connections -->
+<h2>System Architecture</h2>
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TD
+  subgraph GroupA["Group A"]
+    A1["Module A1"] --> A2["Module A2"]
+  end
+  subgraph GroupB["Group B"]
+    B1["Module B1"] --> B2["Module B2"]
+  end
+  A2 --> B1
+</pre>
+</div>
+
+<!-- MODULE CARDS — grouped by category using section-label -->
+<!-- Each module-card links to its L1 overview:
+     - Modules with sub-modules: <module>_doc/index.html
+     - Flat modules: <module>/index.html
+-->
+<p class="section-label">Category 1</p>
+<div class="module-grid">
+  <a href="moduleA_doc/index.html" class="module-card">
+    <h3>moduleA</h3>
+    <div class="tagline">One-line description of module A</div>
+    <p>2-3 sentence summary of what this module does and why it matters.</p>
+    <div class="stats"><span>~N files</span><span>Nk LOC</span><span>Key metric</span></div>
+  </a>
+  <a href="moduleB_doc/index.html" class="module-card">
+    <h3>moduleB</h3>
+    <div class="tagline">One-line description of module B</div>
+    <p>2-3 sentence summary.</p>
+    <div class="stats"><span>~N files</span><span>Nk LOC</span></div>
+  </a>
+</div>
+
+<p class="section-label">Category 2</p>
+<div class="module-grid">
+  <a href="moduleC/index.html" class="module-card">
+    <h3>moduleC</h3>
+    <div class="tagline">A flat module (no sub-modules) — links to single page</div>
+    <p>Flat modules link to <code>&lt;module&gt;/index.html</code> instead of <code>&lt;module&gt;_doc/index.html</code>.</p>
+    <div class="stats"><span>~N files</span></div>
+  </a>
+  <!-- Add more module cards as needed -->
+</div>
+
+<!-- NAVIGATION GUIDE — explains the level hierarchy to readers -->
+<h2>Navigation Guide</h2>
+<table style="max-width:700px">
+  <tr><th>Level</th><th>What You'll Find</th><th>When to Use</th></tr>
+  <tr><td><strong>0 — Project Hub</strong> (this page)</td><td>Project overview, module map, quick stats</td><td>Getting started, finding the right module</td></tr>
+  <tr><td><strong>1 — Module Overview</strong></td><td>Architecture diagram, key components, sub-module cards</td><td>Understanding a module's purpose and structure</td></tr>
+  <tr><td><strong>2 — Sub-Module Deep Dive</strong></td><td>Source-level structs, algorithms, configs, diagrams</td><td>Implementing, debugging, or extending code</td></tr>
+</table>
+
+<!-- CROSS-MODULE CONNECTION DIAGRAM
+     Shows how the major modules interact at their boundaries.
+     Use a sequenceDiagram tracing one concrete operation across modules.
+-->
+<h2>How ModuleA &amp; ModuleB Connect</h2>
+<p>Explanation of the boundary between the two major modules.</p>
+<div class="diagram-container">
+<pre class="mermaid">
+sequenceDiagram
+    participant A as ModuleA Component
+    participant Boundary as Protocol Boundary
+    participant B as ModuleB Component
+    A->>Boundary: Request (opcode)
+    Note over A,Boundary: HIT → fast path done
+    Boundary->>B: Forward on miss
+    B-->>Boundary: Response data
+    Boundary-->>A: Return to requester
+</pre>
+</div>
+<blockquote>
+<strong>Key insight:</strong> ModuleA owns X (components above the boundary). ModuleB owns Y (components below). The protocol at the boundary is Z — it uses credit-based flow control so neither side overwhelms the other.
+</blockquote>
+
+<!-- BUILD & TECH STACK (optional) -->
+<h2>Build &amp; Tech Stack</h2>
+<div class="card-grid">
+  <div class="card"><h4>Languages</h4><p>List primary languages</p></div>
+  <div class="card"><h4>Build System</h4><p>CMake / Make / npm / etc.</p></div>
+  <div class="card"><h4>Key Dependencies</h4><p>Major libraries and frameworks</p></div>
+</div>
+
+<!-- FOOTER with glossary link -->
+<div class="footer"><a href="glossary.html">Glossary</a> &nbsp;|&nbsp; {{PROJECT_NAME}} Wiki</div>
+</main>
+
+<div class="diagram-overlay" id="diagramOverlay"><div class="diagram-overlay-content" id="diagramOverlayContent"></div></div>
+
+<script>
+// Save original mermaid source before any rendering
+document.querySelectorAll('pre.mermaid').forEach(function(el){
+  if(!el.getAttribute('data-source')) el.setAttribute('data-source',el.textContent);
+});
+// Theme toggle
+(function(){
+  var btn=document.getElementById('themeToggle');
+  function renderMermaid(t){
+    var nodes=document.querySelectorAll('pre.mermaid');
+    if(!nodes.length||!window.mermaid) return;
+    nodes.forEach(function(el){
+      var src=el.getAttribute('data-source');
+      if(src){ el.removeAttribute('data-processed'); el.textContent=src; }
+    });
+    try{mermaid.initialize({startOnLoad:false,theme:(t==='light')?'default':'dark',flowchart:{useMaxWidth:true,htmlLabels:true,curve:'basis'}});mermaid.run();}catch(e){console.warn('mermaid re-render:',e);}
+  }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    btn.textContent=(t==='light')?'\u2600':'\u263E';
+    localStorage.setItem('{{PROJECT_THEME_KEY}}-theme',t);
+    renderMermaid(t);
+  }
+  var saved=localStorage.getItem('{{PROJECT_THEME_KEY}}-theme')||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
+  applyTheme(saved);
+  btn.addEventListener('click',function(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');});
+})();
+// Diagram zoom
+(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){content.innerHTML=dc.innerHTML;overlay.classList.add('active');});});overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.remove('active');});document.addEventListener('keydown',function(e){if(e.key==='Escape')overlay.classList.remove('active');});})();
+// Back to top
+(function(){var b=document.getElementById('backToTop');window.addEventListener('scroll',function(){b.classList.toggle('visible',window.scrollY>400);});b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});})();
+</script>
+</body></html>

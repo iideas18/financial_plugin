@@ -1,0 +1,57 @@
+# .github/workflows/wiki-check.yml
+# CI workflow for wiki quality validation.
+#
+# Runs verify.sh and stale-check.sh on push/PR to catch:
+#   - Missing theme toggles, intro boxes, glossary links
+#   - Broken internal links
+#   - Thin pages, too few diagrams
+#   - Stale pages (>30 days since generation)
+#
+# Copy this file into your repo's .github/workflows/ directory.
+# Adjust the docs path and stale threshold as needed.
+
+name: Wiki Quality Check
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+  pull_request:
+    paths:
+      - 'docs/**'
+
+jobs:
+  wiki-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run wiki verification
+        run: |
+          echo "=== Running verify.sh ==="
+          bash scripts/verify.sh docs/
+
+      - name: Run stale page check
+        run: |
+          echo "=== Running stale-check.sh ==="
+          bash scripts/stale-check.sh docs/ 30
+        continue-on-error: true  # stale pages are warnings, not blockers
+
+      - name: Generate coverage dashboard
+        run: |
+          python3 scripts/build-stats.py docs/ --out docs/stats.html
+          echo "=== Dashboard generated ==="
+
+      - name: Upload dashboard artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiki-stats
+          path: docs/stats.html
+          retention-days: 14
