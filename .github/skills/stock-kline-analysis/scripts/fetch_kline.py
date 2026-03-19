@@ -9,8 +9,13 @@ Usage:
 import akshare as ak
 from datetime import date, datetime, timedelta
 from pathlib import Path
+import sys
 import time
 import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).parent))
+from proxy_config import apply_proxy
+apply_proxy()  # configure proxy before any network calls
 
 
 # ── Column name map ─────────────────────────────────────────────────────────
@@ -83,12 +88,15 @@ def _load_cache(
 def normalize(df: pd.DataFrame) -> pd.DataFrame:
     """Rename Chinese columns and return a clean 6-column OHLCV frame."""
     df = df.rename(columns=_COL_MAP)
-    return (
+    df = (
         df[["date", "open", "high", "low", "close", "volume"]]
         .sort_values("date")
         .drop_duplicates("date")
         .reset_index(drop=True)
     )
+    # Ensure date is always a consistent string type to avoid str vs datetime.date mix
+    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+    return df
 
 
 def fetch_timeframe(

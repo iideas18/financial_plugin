@@ -65,7 +65,21 @@ python .github/skills/stock-kline-analysis/scripts/run_analysis.py AAPL --out-di
 python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 --mode full
 python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 --mode execution
 python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 五粮液 --mode full
+python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 --format text   # plain text only
+python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 --format both   # text + markdown
 ```
+
+Output format options (`--format`):
+- `markdown` (default): saves a `.md` file with YAML frontmatter, timestamp in filename (`{code}_analysis_YYYYMMDD_HHMM.md`), and embedded chart image link. Also saves `.txt`.
+- `text`: saves `.txt` only (legacy behavior).
+- `both`: saves both `.txt` and `.md`.
+
+Markdown files include:
+- YAML frontmatter (`title`, `date`, `generator`)
+- Timestamp-stamped filename for version tracking
+- Properly formatted tables, bullet lists, and bold/italic markers
+- Relative image links to chart PNGs
+- For multi-stock comparisons: `{code1}_vs_{code2}_relative_strength_YYYYMMDD_HHMM.md`
 
 | Script | Purpose |
 |---|---|

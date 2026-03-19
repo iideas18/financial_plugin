@@ -18,7 +18,7 @@ import os
 import math
 import numpy as np
 from functools import lru_cache
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -34,9 +34,34 @@ from valuation    import fetch_valuation, compute_pe_pb
 from events       import fetch_events
 
 
+_SYM_FILE = _SCRIPTS_DIR / "data" / "a_share_symbols.csv"
+
+
 @lru_cache(maxsize=1)
 def _get_a_symbol_list():
-    return ak.stock_info_a_code_name()
+    """Load A-share code↔name map from the bundled local CSV (no network needed)."""
+    import pandas as pd
+    return pd.read_csv(_SYM_FILE, dtype=str)
+
+
+def refresh_symbol_list():
+    """One-time helper: fetch latest SH+SZ symbol lists and overwrite the local CSV."""
+    import pandas as pd
+    from akshare.stock.stock_info import stock_info_sh_name_code, stock_info_sz_name_code
+
+    frames = []
+    sh = stock_info_sh_name_code()
+    frames.append(sh.rename(columns={"证券代码": "code", "证券简称": "name"})[["code", "name"]])
+    sz = stock_info_sz_name_code()
+    frames.append(sz.rename(columns={"A股代码": "code", "A股简称": "name"})[["code", "name"]])
+
+    df = pd.concat(frames, ignore_index=True)
+    df["code"] = df["code"].astype(str).str.zfill(6)
+    df["name"] = df["name"].str.strip()
+    _SYM_FILE.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(_SYM_FILE, index=False, encoding="utf-8")
+    print(f"[symbols] Refreshed {len(df)} symbols → {_SYM_FILE}")
+    _get_a_symbol_list.cache_clear()
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -699,12 +724,399 @@ def format_output(
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# Markdown formatting
+# ────────────────────────────────────────────────────────────────────────────
+
+def _ts() -> str:
+    """Compact timestamp for filenames: YYYYMMDD_HHMM."""
+    return datetime.now().strftime("%Y%m%d_%H%M")
+
+
+def _ts_full() -> str:
+    """Human-readable timestamp for report header."""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _md_meta(title: str) -> list[str]:
+    return [
+        "---",
+        f"title: \"{title}\"",
+        f"date: {_ts_full()}",
+        "generator: stock-kline-analysis",
+        "---",
+        "",
+    ]
+
+
+def format_markdown(
+    code: str, name: str, market_label: str,
+    df_daily, df_weekly, df_monthly,
+    val: dict,
+    event_lines: list[str],
+    output_mode: str = "structured",
+    chart_path: str | None = None,
+) -> str:
+    """Produce a Markdown version of the single-stock report."""
+    last   = df_daily.iloc[-1]
+    prev   = df_daily.iloc[-2]
+    today  = date.today()
+
+    pct_chg  = (last["close"] - prev["close"]) / prev["close"] * 100
+    abs_chg  = last["close"] - prev["close"]
+    vol_avg20 = df_daily["volume"].tail(20).mean()
+    vol_ratio = last["volume"] / vol_avg20
+
+    r5   = (last["close"] / df_daily["close"].iloc[-6]  - 1) * 100
+    r10  = (last["close"] / df_daily["close"].iloc[-11] - 1) * 100
+    r20  = (last["close"] / df_daily["close"].iloc[-21] - 1) * 100
+    ann_vol = df_daily["close"].pct_change().tail(60).std() * np.sqrt(252) * 100
+
+    high20 = df_daily["high"].tail(20).max()
+    low20  = df_daily["low"].tail(20).min()
+
+    ma_bull = (
+        last["close"] > last["ma5"] > last["ma20"] > last["ma60"]
+        if not any(np.isnan(v) for v in [last["ma5"], last["ma20"], last["ma60"]])
+        else False
+    )
+    ma_stack = "排列多头 Bullish stack" if ma_bull else "空头排列 Bearish stack"
+
+    w_trend = m_trend = "N/A"
+    if df_weekly is not None and "ma20" in df_weekly.columns:
+        wl = df_weekly.iloc[-1]
+        w_trend = "Uptrend ✓" if wl["close"] > wl["ma20"] else "Downtrend ✗"
+    if df_monthly is not None and "ma20" in df_monthly.columns:
+        ml = df_monthly.iloc[-1]
+        m_trend = "Uptrend ✓" if ml["close"] > ml["ma20"] else "Holding Support (above MA20) ✓" \
+            if ml["close"] >= ml["ma20"] * 0.98 else "Downtrend ✗"
+
+    hist_last5 = df_daily["macd_hist"].tail(5).tolist()
+    macd_desc = (
+        "MACD & Signal below zero; histogram converging → bearish momentum fading"
+        if last["macd"] < 0 and abs(last["macd_hist"]) < 0.05
+        else "MACD above Signal, histogram positive → bullish momentum"
+        if last["macd"] > last["macd_signal"] and last["macd_hist"] > 0
+        else "MACD below Signal, histogram negative → bearish momentum"
+    )
+
+    bb_desc = (
+        "Squeeze — band narrowing, breakout pending"
+        if last["bb_width"] < 10
+        else "Expanding — volatility breakout in progress"
+        if last["bb_width"] > 20
+        else "Normal bandwidth"
+    )
+
+    trailing_stop = last["close"] - 1.5 * last["atr14"]
+    start_date = df_daily["date"].iloc[0]
+    support = df_daily.attrs.get("support", 0)
+    resistance = df_daily.attrs.get("resistance", 0)
+
+    rsi_label = "超买 overbought" if last["rsi14"] > 70 else "超卖 oversold" if last["rsi14"] < 30 else "中性 neutral"
+    vol_label = "放量" if vol_ratio > 1.2 else "缩量" if vol_ratio < 0.8 else "平量"
+
+    lines = _md_meta(f"{name} ({code}) K线分析报告")
+    lines += [
+        f"# {name} ({code}) · K线分析报告",
+        "",
+        f"> 生成时间: {_ts_full()}  ",
+        #f"> 数据来源: AkShare · 前复权 qfq  ",
+        "",
+        "## Symbol Summary",
+        "",
+        f"| 项目 | 内容 |",
+        f"|---|---|",
+        f"| 名称/代码 | {name} ({code}) · {market_label} |",
+        f"| 分析区间 | {start_date} → {today} (日线 6M, qfq-adjusted) |",
+        f"| 多周期确认 | Weekly: {w_trend} \\| Monthly: {m_trend} |",
+        "",
+    ]
+
+    # Chart image
+    if chart_path:
+        chart_basename = Path(chart_path).name
+        lines += [
+            "## K-Line Chart",
+            "",
+            f"![{code} K-line]({chart_basename})",
+            "",
+        ]
+
+    lines += [
+        "## K-Line Snapshot",
+        "",
+        "| 指标 | 数值 |",
+        "|---|---|",
+        f"| 最新收盘 | ¥{last['close']:.2f} |",
+        f"| 1日涨跌 | {pct_chg:+.2f}% ({abs_chg:+.2f}) |",
+        f"| MA5 / MA20 / MA60 | ¥{last['ma5']:.2f} / ¥{last['ma20']:.2f} / ¥{last['ma60']:.2f} ({ma_stack}) |",
+        f"| 布林带 Bollinger | Upper ¥{last['bb_upper']:.2f} · Mid ¥{last['bb_mid']:.2f} · Lower ¥{last['bb_lower']:.2f} (Width: {last['bb_width']:.1f}%) |",
+        f"| ATR-14 (波动幅) | ¥{last['atr14']:.2f}/day ({last['atr_pct']:.1f}% of price) |",
+        f"| 20日区间 | ¥{low20:.2f} – ¥{high20:.2f} |",
+        f"| 成交量 vs 20日均 | {(vol_ratio-1)*100:+.0f}% ({vol_label}) |",
+        "",
+        "## Technical View — 技术面",
+        "",
+        f"- **趋势 Trend**: {ma_stack}",
+        f"  - Weekly: {w_trend}",
+        f"  - Monthly: {m_trend}",
+        f"- **动量 Momentum**: 5D {_pct(r5)} | 10D {_pct(r10)} | 20D {_pct(r20)} | Ann.Vol {ann_vol:.1f}%",
+        f"- **MACD**: {macd_desc}",
+        f"  - Hist(last 5): `{[round(h,4) for h in hist_last5]}`",
+        f"- **RSI-14**: {last['rsi14']:.1f} ({rsi_label})",
+        f"- **BB Squeeze**: Width {last['bb_width']:.1f}% — {bb_desc}",
+        f"- **支撑 Support**: ¥{support:.2f}",
+        f"- **阻力 Resistance**: ¥{resistance:.2f}",
+        f"- **ATR止损参考**: last close − 1.5×ATR = ¥{last['close']:.2f} − ¥{1.5*last['atr14']:.2f} ≈ **¥{trailing_stop:.2f}**",
+        "",
+    ]
+
+    # Valuation
+    lines += ["## Valuation — 估值", ""]
+    if val.get("note"):
+        lines.append(f"> {val['note']}")
+        lines.append("")
+    lines += [
+        "| 指标 | 数值 |",
+        "|---|---|",
+    ]
+    if val.get("pe_ttm") is not None:
+        lines.append(f"| PE (TTM) | {val['pe_ttm']}x (EPS ¥{val.get('eps','N/A')}) |")
+    else:
+        lines.append("| PE (TTM) | N/A (EPS unavailable) |")
+    if val.get("pb") is not None:
+        lines.append(f"| PB | {val['pb']}x (BVPS ¥{val.get('book_value_per_share','N/A')}) |")
+    lines += [
+        f"| ROE | {val.get('roe','N/A')}% |",
+        f"| 毛利率 | {val.get('gross_margin','N/A')}% |",
+        f"| 营收 YoY | {_pct(val.get('revenue_yoy'))} |",
+        f"| 净利 YoY | {_pct(val.get('net_profit_yoy'))} |",
+        f"| 行业 | {val.get('industry','N/A')} |",
+        f"| 最新公告 | {val.get('report_date','N/A')} |",
+        "",
+        "> 历史PE百分位不可用 — `stock_a_lg_indicator` 接口已下线",
+        "",
+    ]
+
+    # Events
+    lines += ["## Event Overlay — 事件", ""]
+    for ev in event_lines:
+        lines.append(ev if ev.startswith("- ") or ev.startswith("  ") else f"- {ev}")
+    lines.append("")
+
+    # Data freshness
+    freshness_line = _fetch_meta_line(df_daily)
+    if freshness_line:
+        lines += ["## Data Freshness — 数据时效", "", freshness_line, ""]
+
+    # Risk
+    rsi_warn = "接近超买，注意回调" if last["rsi14"] > 65 else "中性区，无明显超买"
+    lines += [
+        "## Risk & Watchpoints — 风险",
+        "",
+        f"- **多单失效**: 若收盘跌破 MA20 (¥{last['ma20']:.2f}) + 放量 → 趋势走弱",
+        f"- **布林下轨**: 跌破 BB Lower (¥{last['bb_lower']:.2f}) = 下行波动放大",
+        f"- **RSI超买**: RSI {last['rsi14']:.1f} — {rsi_warn}",
+        f"- **ATR止损**: 仓位管理参考 1 ATR = ¥{last['atr14']:.2f}",
+        f"- **突破条件**: 重返 MA20 (¥{last['ma20']:.2f}) + MACD金叉 + 成交量 >+50% → 反转确认",
+        "",
+        "> ⚠ 本报告仅供信息参考，不构成任何投资建议。",
+        "",
+    ]
+
+    # Execution sections
+    if output_mode in {"full", "execution"}:
+        plan = build_trade_plan(df_daily, df_weekly, df_monthly)
+        al, ah = plan["aggressive_zone"]
+        cl, ch = plan["confirm_zone"]
+        bl, bh = plan["breakout_zone"]
+        vol_r_pct = (vol_ratio - 1) * 100
+        bias = "尾盘优先，早盘只适合小仓试错" if plan["close_preferred"] else "可早盘跟随，但仍需量价确认"
+        bias_reason = "周/月级别尚未共振转强，尾盘更能确认是假反抽还是修复成立" if plan["close_preferred"] else "多周期偏强，早盘顺势参与的容错更高"
+        lines += [
+            "## Trading Plan — 交易执行版",
+            "",
+            "| 区间 | 价格 | 说明 |",
+            "|---|---|---|",
+            f"| 试错低吸区 | {_format_range(al, ah)} | 仅小仓 |",
+            f"| 右侧确认区 | {_format_range(cl, ch)} | 站稳 MA20 后加仓 |",
+            f"| 突破跟随区 | {_format_range(bl, bh)} | 放量突破阻力 |",
+            f"| 试错止损 | ¥{plan['invalidation']:.2f} | |",
+            f"| 结构止损 | ¥{plan['structural_stop']:.2f} | |",
+            f"| 确认仓止损 | ¥{plan['confirm_stop']:.2f} | |",
+            f"| 突破仓止损 | ¥{plan['breakout_stop']:.2f} | |",
+            "",
+            f"**观察主线**: 先看 ¥{plan['confirm_line']:.2f} 能否收回，再看 ¥{plan['breakout_line']:.2f} 能否放量突破",
+            "",
+            "## Watchlist — 三段式盯盘清单",
+            "",
+            f"| 阶段 | 内容 |",
+            f"|---|---|",
+            f"| 开盘前 | 写好试错区、确认线、失效线；默认不追第一笔。重点: {_format_range(al, ah)} / ¥{plan['confirm_line']:.2f} / ¥{plan['structural_stop']:.2f} |",
+            f"| 盘中 | 回踩试错区止跌 → 小仓；站上 ¥{plan['confirm_line']:.2f} 且量能改善 → 加仓。量能 {vol_r_pct:+.0f}% vs 20日均 |",
+            f"| 收盘前 | 收盘稳在 ¥{plan['confirm_line']:.2f} 上方 → 右侧修复成立；否则按反抽看待 |",
+            "",
+            "## Timing Bias — 早盘 vs 尾盘",
+            "",
+            f"| 项目 | 内容 |",
+            f"|---|---|",
+            f"| 执行偏好 | {bias} |",
+            f"| 原因 | {bias_reason} |",
+            f"| 早盘买条件 | 仅在 {_format_range(al, ah)} 一带止跌时小仓试错，不追高 |",
+            f"| 尾盘买条件 | 收盘前稳定在 ¥{plan['confirm_line']:.2f} 上方，且回落不破 |",
+            "",
+        ]
+
+    return "\n".join(lines)
+
+
+def format_compare_markdown(symbol_reports: list[dict[str, Any]], output_mode: str = "structured") -> str:
+    """Produce a Markdown version of the multi-stock comparison report."""
+    ranked = build_relative_strength_data(symbol_reports)
+    leader = ranked[0]
+    laggard = ranked[-1]
+    total = len(ranked)
+    start_date = max(report["df_daily"]["date"].iloc[0] for report in symbol_reports)
+    today = date.today()
+    compared_symbols = " / ".join(f"{item['name']} ({item['code']})" for item in ranked)
+
+    for item in ranked:
+        item["priority"] = _priority_label(item["rank"], total)
+    _assign_allocation_weights(ranked)
+
+    priority_items = [item for item in ranked if item["priority"] == "右侧优先"]
+    watch_items = [item for item in ranked if item["priority"] == "只配观察"]
+    avoid_items = [item for item in ranked if item["priority"] == "应回避"]
+
+    lines = _md_meta(f"Relative Strength — {compared_symbols}")
+    lines += [
+        f"# Relative Strength 对比报告",
+        "",
+        f"> 生成时间: {_ts_full()}  ",
+        f"> 数据来源: AkShare · 前复权 qfq  ",
+        "",
+        "## Comparison Summary",
+        "",
+        "| 项目 | 内容 |",
+        "|---|---|",
+        f"| 对比标的 | {compared_symbols} |",
+        f"| 分析区间 | {start_date} → {today} (日线 6M, qfq-adjusted) |",
+        f"| Relative Leader | **{leader['name']} ({leader['code']})** |",
+        f"| Relative Laggard | **{laggard['name']} ({laggard['code']})** |",
+        "",
+        "## Relative Strength",
+        "",
+        "| Symbol | 6M Return | Vol20D | Sharpe | RSI14 | ATR% | Rank | View | Weight |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+
+    for item in ranked:
+        label = f"{item['name']} ({item['code']})"
+        marker = " ← Leader" if item is leader else " ← Laggard" if item is laggard else ""
+        lines.append(
+            f"| **{label}** | {item['return_6m']:+.1f}% | {item['vol_20d']:.1f}% | "
+            f"{item['sharpe_proxy']:.2f} | {item['rsi14']:.1f} | {item['atr_pct']:.1f}% | "
+            f"{_ordinal(item['rank'])} | {item['priority']} | {item.get('suggested_weight', 0)}%{marker} |"
+        )
+
+    lines += [
+        "",
+        "## Execution Bias — 相对强弱执行结论",
+        "",
+        f"- **Leader 优先级**: {leader['name']} 更适合做右侧确认或突破跟随，因其 return / Sharpe / RSI 综合更强",
+        f"- **Laggard 处理**: {laggard['name']} 只适合超跌反抽试错，若不能收回确认线则应降低优先级",
+        "",
+    ]
+
+    if total >= 3:
+        lines += [
+            "## Priority Guidance — 统一优先级建议",
+            "",
+            "| 分类 | 标的 |",
+            "|---|---|",
+            f"| **右侧优先** | {_format_symbol_group(priority_items)} |",
+            f"| **只配观察** | {_format_symbol_group(watch_items)} |",
+            f"| **应回避** | {_format_symbol_group(avoid_items)} |",
+            "",
+            "## Portfolio Suggestion — 组合建议版",
+            "",
+            "| 分类 | 标的 | 建议权重 |",
+            "|---|---|---|",
+        ]
+        for item in ranked:
+            bucket = item["priority"]
+            lines.append(f"| {bucket} | {item['name']} ({item['code']}) | {item.get('suggested_weight', 0)}% |")
+        lines += [
+            "",
+            f"**主仓首选**: {leader['name']} ({leader['code']})",
+            "",
+            "> 权重说明: 相对强弱排序下的组合建议，不是精确仓位模型；默认主仓70% / 观察30% / 排除0% 框架。",
+        ]
+        if leader["return_6m"] < 0:
+            lines.append(f"> ⚠ 即使相对最强标的仍为负收益，右侧优先仅代表相对占优，不代表趋势已确认。")
+        lines.append("")
+
+    # Cache Freshness
+    freshness_rows = []
+    for item in ranked:
+        meta = item["report"]["df_daily"].attrs.get("fetch_meta") if hasattr(item["report"]["df_daily"], "attrs") else None
+        if meta:
+            src = "实时抓取" if meta.get("source") == "live" else "本地缓存回退"
+            freshness_rows.append(
+                f"| {item['name']} ({item['code']}) | {src} | {meta.get('last_bar_date','N/A')} | "
+                f"{meta.get('cached_at','N/A')} | {meta.get('staleness_days','?')}天 |"
+            )
+    if freshness_rows:
+        lines += [
+            "## Cache Freshness — 缓存时效",
+            "",
+            "| 标的 | 来源 | 最近K线 | 缓存时间 | 距今 |",
+            "|---|---|---|---|---|",
+        ] + freshness_rows + [""]
+
+    # Execution plans
+    if output_mode in {"full", "execution"}:
+        for tag, item in [("Leader Plan — 强者执行计划", leader), ("Laggard Plan — 弱者执行计划", laggard)]:
+            plan = item["plan"]
+            al, ah = plan["aggressive_zone"]
+            cl, ch = plan["confirm_zone"]
+            bl, bh = plan["breakout_zone"]
+            bias = "尾盘确认优先" if plan["close_preferred"] else "可早盘跟随"
+            lines += [
+                f"## {tag}",
+                "",
+                f"**标的**: {item['name']} ({item['code']})",
+                "",
+                "| 区间 | 价格 |",
+                "|---|---|",
+                f"| 试错区 | {_format_range(al, ah)} |",
+                f"| 确认区 | {_format_range(cl, ch)} |",
+                f"| 突破区 | {_format_range(bl, bh)} |",
+                f"| 试错止损 | ¥{plan['invalidation']:.2f} |",
+                f"| 结构止损 | ¥{plan['structural_stop']:.2f} |",
+                f"| 执行偏好 | {bias} |",
+                "",
+                f"**观察主线**: 先看 ¥{plan['confirm_line']:.2f}，再看 ¥{plan['breakout_line']:.2f}",
+                "",
+            ]
+
+    lines += [
+        "---",
+        "",
+        "> ⚠ 本报告仅供信息参考，不构成任何投资建议。",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # Main
 # ────────────────────────────────────────────────────────────────────────────
 
-def run(raw_input: str | list[str], out_dir: str = ".", output_mode: str = "structured") -> None:
+def run(raw_input: str | list[str], out_dir: str = ".", output_mode: str = "structured", output_format: str = "markdown") -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    ts = _ts()
 
     if isinstance(raw_input, str):
         symbols = [raw_input]
@@ -713,10 +1125,24 @@ def run(raw_input: str | list[str], out_dir: str = ".", output_mode: str = "stru
 
     if len(symbols) == 1:
         report_data = analyze_symbol(symbols[0], out_dir, output_mode=output_mode, render_chart=True)
+        # Always print plain text to terminal
         print(report_data["report"])
-        report_path = out_dir / f"{report_data['code']}_analysis.txt"
-        report_path.write_text(report_data["report"], encoding="utf-8")
-        print(f"[run] Report saved → {report_path}")
+        # Save plain text
+        txt_path = out_dir / f"{report_data['code']}_analysis.txt"
+        txt_path.write_text(report_data["report"], encoding="utf-8")
+        print(f"[run] Report saved → {txt_path}")
+        # Save markdown
+        if output_format in {"markdown", "both"}:
+            md_report = format_markdown(
+                report_data["code"], report_data["name"], report_data["market_label"],
+                report_data["df_daily"], report_data["df_weekly"], report_data["df_monthly"],
+                report_data["val"], report_data["event_lines"],
+                output_mode=output_mode,
+                chart_path=report_data["chart_path"],
+            )
+            md_path = out_dir / f"{report_data['code']}_analysis_{ts}.md"
+            md_path.write_text(md_report, encoding="utf-8")
+            print(f"[run] Markdown saved → {md_path}")
         if report_data["chart_path"]:
             print(f"[run] Chart saved  → {report_data['chart_path']}")
         return
@@ -725,17 +1151,24 @@ def run(raw_input: str | list[str], out_dir: str = ".", output_mode: str = "stru
         analyze_symbol(symbol, out_dir, output_mode=output_mode, render_chart=False, include_context=False)
         for symbol in symbols
     ]
+    # Plain text
     report = format_compare_output(symbol_reports, output_mode=output_mode)
     print(report)
-    file_stub = "_vs_".join(report_data["code"] for report_data in symbol_reports)
-    report_path = out_dir / f"{file_stub}_relative_strength.txt"
-    report_path.write_text(report, encoding="utf-8")
-    print(f"[run] Relative strength report saved → {report_path}")
+    file_stub = "_vs_".join(r["code"] for r in symbol_reports)
+    txt_path = out_dir / f"{file_stub}_relative_strength.txt"
+    txt_path.write_text(report, encoding="utf-8")
+    print(f"[run] Relative strength report saved → {txt_path}")
+    # Markdown
+    if output_format in {"markdown", "both"}:
+        md_report = format_compare_markdown(symbol_reports, output_mode=output_mode)
+        md_path = out_dir / f"{file_stub}_relative_strength_{ts}.md"
+        md_path.write_text(md_report, encoding="utf-8")
+        print(f"[run] Markdown saved → {md_path}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Stock K-Line Analysis")
-    parser.add_argument("symbols", nargs="+", help="One or more stock codes/names for analysis or relative-strength comparison")
+    parser.add_argument("symbols", nargs="*", help="One or more stock codes/names for analysis or relative-strength comparison")
     parser.add_argument("--out-dir", default=".", help="Directory for output files (default: current dir)")
     parser.add_argument(
         "--mode",
@@ -743,5 +1176,21 @@ if __name__ == "__main__":
         default="structured",
         help="Output style: structured analysis only, full analysis plus trading plan, or execution-focused report",
     )
+    parser.add_argument(
+        "--format",
+        choices=["text", "markdown", "both"],
+        default="markdown",
+        help="Output format: text only, markdown only (default), or both",
+    )
+    parser.add_argument(
+        "--refresh-symbols",
+        action="store_true",
+        help="Fetch latest SH+SZ symbol list from exchanges and update data/a_share_symbols.csv, then exit",
+    )
     args = parser.parse_args()
-    run(args.symbols, out_dir=args.out_dir, output_mode=args.mode)
+    if args.refresh_symbols:
+        refresh_symbol_list()
+        sys.exit(0)
+    if not args.symbols:
+        parser.error("Please provide at least one stock code or name.")
+    run(args.symbols, out_dir=args.out_dir, output_mode=args.mode, output_format=args.format)

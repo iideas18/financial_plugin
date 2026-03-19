@@ -1,143 +1,128 @@
-# stock-kline-analysis
+# Financial Plugin
 
-Stock K-line analysis skill for A-share, HK, and US symbols.
+A VS Code skill workspace for stock market analysis, sector scanning, and agent-driven trading workflows.
 
-It resolves a stock name or code, fetches recent K-line data, computes technical indicators, renders a chart, and produces either a structured analysis report or an execution-oriented trade plan. It also supports multi-symbol relative-strength comparison with leader / laggard plans, unified priority guidance, and indicative portfolio weights.
+## Quick Start
 
-## What It Does
+```bash
+# Install dependencies
+pip install akshare matplotlib pandas numpy
 
-- Resolves stock codes and Chinese stock names automatically
-- Fetches daily, weekly, and monthly OHLCV data
-- Computes MA5 / MA20 / MA60, Bollinger Bands, MACD, RSI-14, and ATR-14
-- Generates a matplotlib K-line chart
-- Adds valuation context for A-shares when the data source is available
-- Adds macro-event overlay with fallback calendar support
-- Produces execution-style outputs such as entry zones, stop zones, watchlists, and open-vs-close bias
-- Compares multiple symbols by relative strength
-- Produces leader / laggard execution plans
-- Produces 3+ symbol portfolio guidance with main-position, watch-only, and exclude buckets
+# Launch the web UI
+python .github/skills/stock-kline-analysis/scripts/web_selector.py --port 8686
 
-## Files
+# CLI analysis
+python .github/skills/stock-kline-analysis/scripts/run_analysis.py 000063 --format markdown
 
-- [SKILL.md](g:/repo/skill_to_windows/.github/skills/stock-kline-analysis/SKILL.md): skill instructions and behavior contract
-- [scripts/run_analysis.py](g:/repo/skill_to_windows/.github/skills/stock-kline-analysis/scripts/run_analysis.py): main CLI entrypoint
-- [scripts/fetch_kline.py](g:/repo/skill_to_windows/.github/skills/stock-kline-analysis/scripts/fetch_kline.py): K-line fetch + local cache fallback
-- [scripts/indicators.py](g:/repo/skill_to_windows/.github/skills/stock-kline-analysis/scripts/indicators.py): technical indicators
-- [scripts/chart.py](g:/repo/skill_to_windows/.github/skills/stock-kline-analysis/scripts/chart.py): chart rendering
-- [scripts/valuation.py](g:/repo/skill_to_windows/.github/skills/stock-kline-analysis/scripts/valuation.py): valuation fetch and PE/PB derivation
-- [scripts/events.py](g:/repo/skill_to_windows/.github/skills/stock-kline-analysis/scripts/events.py): event overlay
+# Sector scan
+python .github/skills/stock-kline-analysis/scripts/sector_scan.py --type all --top 10
+```
+
+Open `http://localhost:8686` to access the full web interface.
+
+## Features
+
+### Web UI (web_selector.py)
+
+- **Stock Selector** — searchable, filterable list of 4,500+ A-share stocks with virtual scrolling
+- **Batch Analysis** — select multiple stocks and run analysis in one click
+- **Report Viewer** — browse and read rendered markdown reports in-browser
+- **Sector Scanner** — scan industry boards, concept boards, and fund flows for leading groups
+- **Drill-down** — click any board to see its top constituent stocks, then add them to analysis
+- **Proxy Settings** — configure and test corporate proxy from the UI
+
+### Stock Analysis (run_analysis.py)
+
+- Auto-detect market from stock code (A-share SH/SZ, HK, US)
+- Fetch daily/weekly/monthly K-line data via AkShare
+- Compute MA5/MA20/MA60, Bollinger Bands, MACD, RSI-14, ATR-14
+- Generate candlestick charts with indicator overlays
+- Structured, full, or execution-oriented report modes
+- Multi-symbol relative strength comparison
+- Markdown and text output with YAML frontmatter
+
+### Sector Scanner (sector_scan.py)
+
+- Industry board ranking by daily change
+- Concept/theme board ranking
+- Sector fund flow (main net inflow) ranking
+- Board constituent drill-down with leader stock identification
+- 30-minute cache, 3× retry with backoff
+- CLI and API modes
+
+### Livermore Trading Agent
+
+- Jesse Livermore–style trading analysis persona
+- Top-down workflow: leading groups → leader stocks → pivotal points
+- Structured output: trend, timing, risk, position sizing
+- Invoked via Copilot Chat with the `@livermore` agent
+
+### Proxy Configuration (proxy_config.py)
+
+- Centralized proxy management for corporate networks
+- Persistent settings saved to `scripts/data/proxy.json`
+- CLI and web UI configuration
+- Connectivity testing against East Money API domains
+
+## Skills
+
+| Skill | Path | Purpose |
+|---|---|---|
+| stock-kline-analysis | `.github/skills/stock-kline-analysis/` | K-line fetch, indicators, charts, analysis reports |
+| transfer-skill-to-windows | `.github/skills/transfer-skill-to-windows/` | Adapt skills for Windows/PowerShell |
+| email-rewrite | `.github/skills/email-rewrite/` | Polish and improve email drafts |
+| module-docs | `.github/skills/module-docs/` | Generate HTML documentation with Mermaid diagrams |
+| repo-docs-generator | `.github/skills/repo-docs-generator/` | Generate project overview docs |
+| resume-optimize | `.github/skills/resume-optimize/` | Resume scoring and optimization |
+| xiaohongshu-skills | `.github/skills/xiaohongshu-skills/` | 小红书 automation |
+
+## Agents
+
+| Agent | Path | Purpose |
+|---|---|---|
+| livermore | `.github/agents/livermore.agent.md` | Jesse Livermore trading analysis |
+
+## Repository Layout
+
+```text
+.
+├── .github/
+│   ├── agents/
+│   │   └── livermore.agent.md
+│   └── skills/
+│       ├── stock-kline-analysis/
+│       │   ├── SKILL.md
+│       │   └── scripts/
+│       │       ├── web_selector.py      # Web UI server
+│       │       ├── run_analysis.py      # CLI analysis orchestrator
+│       │       ├── sector_scan.py       # Sector/board scanner
+│       │       ├── fetch_kline.py       # K-line data fetching + cache
+│       │       ├── chart.py             # Candlestick chart rendering
+│       │       ├── indicators.py        # Technical indicator calculations
+│       │       ├── valuation.py         # Fundamental data (PE/PB)
+│       │       ├── events.py            # Market events overlay
+│       │       ├── proxy_config.py      # Proxy configuration
+│       │       └── data/
+│       │           ├── a_share_symbols.csv  # 4,500+ stock codes & names
+│       │           └── proxy.json           # Saved proxy settings
+│       ├── transfer-skill-to-windows/
+│       └── ...other skills
+└── README.md
+```
 
 ## Requirements
 
-- Python environment with `akshare`, `pandas`, `numpy`, and `matplotlib`
-- Network access for live market and valuation/event fetches
-- Windows is supported; chart rendering includes Chinese font fallbacks
+- Python 3.10+
+- akshare, matplotlib, pandas, numpy
+- VS Code with GitHub Copilot Chat (for skill/agent integration)
 
-## Basic Usage
+## Proxy Notes
 
-Run a single-symbol structured report:
-
-```bash
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py 600519
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py AAPL
-```
-
-Write output files to a specific folder:
+Behind a corporate proxy, configure it before first use:
 
 ```bash
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 --out-dir test/stock-kline-analysis-output
+# CLI
+python .github/skills/stock-kline-analysis/scripts/proxy_config.py --set http://your-proxy:port --test
+
+# Or use the Web UI → Proxy Settings section
 ```
-
-## Output Modes
-
-`run_analysis.py` supports three output modes:
-
-- `structured`: classic structured analysis report
-- `full`: structured report plus execution plan, watchlist, timing bias, and comparison extras
-- `execution`: execution-focused version for trading-style prompts
-
-Examples:
-
-```bash
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 --mode full
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 --mode execution
-```
-
-## Multi-Symbol Comparison
-
-Pass two or more symbols or names to switch into relative-strength mode automatically.
-
-```bash
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py 贵州茅台 五粮液 --mode full
-python .github/skills/stock-kline-analysis/scripts/run_analysis.py 600519 600809 000858 000568 --mode execution
-```
-
-Comparison output includes:
-
-- Relative-strength ranking table
-- `Leader` and `Laggard`
-- Leader and laggard trade plans
-- Unified priority buckets: `右侧优先`, `只配观察`, `应回避`
-- Portfolio suggestion section for 3+ symbols
-- Indicative weight guidance when the user did not provide a custom risk budget
-
-Default portfolio framework for 3+ symbols:
-
-- Main-position candidates: 70% total
-- Watch-only bucket: 30% total
-- Excluded names: 0%
-
-Weights are then split within each bucket by relative rank strength.
-
-## Cache Behavior
-
-The fetch layer stores successful K-line responses in a local cache under the skill's `.cache` directory.
-
-Behavior:
-
-- Live fetch succeeds: cache is updated
-- Live fetch fails: the latest cached frame is reused if available
-- Reports surface freshness metadata instead of hiding cache usage
-
-Freshness sections may include:
-
-- data source: live or cache fallback
-- cache file name
-- cache timestamp
-- last bar date
-- lag versus current date
-
-This makes multi-symbol comparison more resilient when one symbol hits a transient upstream failure.
-
-## Output Sections
-
-Depending on mode and prompt intent, reports may include:
-
-- `Symbol Summary`
-- `K-Line Snapshot`
-- `Technical View`
-- `Valuation`
-- `Event Overlay`
-- `Risk & Watchpoints`
-- `Trading Plan — 交易执行版`
-- `Watchlist — 三段式盯盘清单`
-- `Timing Bias — 早盘 vs 尾盘`
-- `Relative Strength`
-- `Priority Guidance — 统一优先级建议`
-- `Portfolio Suggestion — 组合建议版`
-- `Data Freshness` or `Cache Freshness`
-
-## Notes
-
-- Chinese name resolution uses the A-share symbol list first and avoids misclassifying Chinese names as US tickers.
-- Valuation fetches degrade gracefully when the remote source is slow or unavailable.
-- Relative-strength output is ranking-based and not a full portfolio optimizer.
-- Nothing in the output should be interpreted as guaranteed direction or investment advice.
-
-## Example Prompts
-
-- Analyze 贵州茅台 and show Bollinger Bands, MACD, RSI, and ATR stop-loss.
-- Compress 贵州茅台 into a trading-style execution plan with entry, stop, and watch levels.
-- Compare 贵州茅台, 五粮液, and 泸州老窖 by relative strength.
-- Give me a portfolio suggestion with main-position candidates, watch-only names, exclusions, and indicative weights.

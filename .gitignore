@@ -1,0 +1,12 @@
+node_modules
+output
+logs
+*.log
+*.tmp
+bak
+*.swp
+*.txt
+previous_ana
+test
+.cache
+__pycache__
