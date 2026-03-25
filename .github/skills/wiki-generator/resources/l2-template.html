@@ -79,7 +79,7 @@ pre code{background:none;padding:0}
 /* === Diagram fullscreen overlay === */
 .diagram-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:3000;align-items:center;justify-content:center;cursor:zoom-out}
 .diagram-overlay.active{display:flex}
-.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border)}
+.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border);transform-origin:center center}
 .diagram-container{cursor:zoom-in}
 #diagramOverlay.active svg,#diagramOverlayContent svg{max-width:90vw!important;max-height:85vh!important;width:90vw!important}
 
@@ -192,17 +192,36 @@ flowchart TD
   <!-- Add rows -->
 </table>
 
-<!-- EXTRACTION HUB — use when a mechanism graduates into one or more focus pages.
+<!-- DIRECTORY MAP — sub-module source files -->
+<h2 id="directory-map">Directory Map</h2>
+<details open>
+<summary style="cursor:pointer;color:var(--accent);font-weight:600;">Source tree for {{SUBMOD_NAME}}</summary>
+<pre style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-top:.5rem;font-size:.85rem;line-height:1.6;overflow-x:auto;"><code>submod_name/
+├── file_a.ext                 ← Role: brief annotation
+├── file_b.ext                 ← Role: brief annotation
+├── file_c.ext                 ← Role: brief annotation
+└── index.ext                  ← Role: entry point
+</code></pre>
+</details>
+
+<!-- DEEP-DIVE HUB — focus sub-pages are created during initial build (Phase 5).
+     Replace summaries and links below with actual deep-dive topics from research. -->
 <h2 id="deep-dives">Deep-Dive Highlights</h2>
-<p class="hub-note">When a topic is extracted into a dedicated focus page, replace the long inline write-up with a 1-2 sentence summary and keep all extracted links in one shared card grid below.</p>
+<p class="hub-note">Core mechanisms from this sub-module have been extracted into dedicated focus pages for in-depth exploration. Each page covers one algorithm, protocol, or subsystem with diagrams, code walks, and configuration details.</p>
 <h4>Deep-Dive Pages</h4>
 <div class="card-grid deep-dive-grid">
-  <a class="card" href="topic_slug/index.html" title="Topic Name — Deep Dive">
-    <h4>Topic Name <span class="focus-badge">Focus</span></h4>
-    <p>Short description of what the focus page covers.</p>
+  <a class="card" href="topic_a_slug/index.html" title="Topic A — Deep Dive">
+    <h4>Topic A Name <span class="focus-badge">Focus</span></h4>
+    <p>Short description of what this focus page covers.</p>
+    <div class="focus-meta" style="margin-top:.6rem;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Extracted topic page</div>
   </a>
+  <a class="card" href="topic_b_slug/index.html" title="Topic B — Deep Dive">
+    <h4>Topic B Name <span class="focus-badge">Focus</span></h4>
+    <p>Short description of what this focus page covers.</p>
+    <div class="focus-meta" style="margin-top:.6rem;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Extracted topic page</div>
+  </a>
+  <!-- Add 3-5 cards total, one per deep-dive focus page -->
 </div>
--->
 
 <!-- CODE EXAMPLES -->
 <h2 id="code-examples">Code Examples</h2>
@@ -214,7 +233,7 @@ void example() {
 </code></pre>
 
 <!-- FOOTER -->
-<div class="footer"><a href="../index.html">&larr; Back to {{MODULE_NAME}} Overview</a> &bull; <a href="../../glossary.html">Glossary</a></div>
+<div class="footer"><a href="../index.html">&larr; Back to {{MODULE_NAME}} Overview</a></div>
 </main>
 
 <div class="diagram-overlay" id="diagramOverlay"><div class="diagram-overlay-content" id="diagramOverlayContent"></div></div>
@@ -280,8 +299,8 @@ document.querySelectorAll('pre code').forEach(function(block){
   btn.addEventListener('click',function(){navigator.clipboard.writeText(block.textContent).then(function(){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},1500);});});
   pre.appendChild(btn);
 });
-// Diagram zoom
-(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){content.innerHTML=dc.innerHTML;overlay.classList.add('active');});});overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.remove('active');});document.addEventListener('keydown',function(e){if(e.key==='Escape')overlay.classList.remove('active');});})();
+// Diagram zoom with scroll-wheel support
+(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');var scale=1;function resetZoom(){scale=1;content.style.transform='scale(1)';}function openOverlay(dc){content.innerHTML='';var svg=dc.querySelector('svg');if(svg){var clone=svg.cloneNode(true);clone.style.maxWidth='90vw';clone.style.maxHeight='85vh';clone.style.width='90vw';content.appendChild(clone);}else{content.innerHTML=dc.innerHTML;}resetZoom();overlay.classList.add('active');}document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){openOverlay(dc);});});overlay.addEventListener('click',function(e){if(e.target===overlay){overlay.classList.remove('active');resetZoom();}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){overlay.classList.remove('active');resetZoom();}});content.addEventListener('wheel',function(e){if(!overlay.classList.contains('active'))return;e.preventDefault();var d=e.deltaY>0?-0.1:0.1;scale=Math.min(5,Math.max(0.5,scale+d));content.style.transform='scale('+scale+')';},{passive:false});})();
 // Back to top
 (function(){var b=document.getElementById('backToTop');window.addEventListener('scroll',function(){b.classList.toggle('visible',window.scrollY>400);});b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});})();
 // Keyboard navigation: j/k scroll H2, / focuses search

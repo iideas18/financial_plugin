@@ -2,7 +2,7 @@
 """build-stats.py — Generate a coverage dashboard (stats.html) for the wiki.
 
 Scans docs/ and produces a self-contained HTML page showing:
-  - Total pages, diagrams, glossary terms, focus pages
+  - Total pages, diagrams, focus pages
   - Per-module breakdown (pages, avg lines, diagrams, stale status)
   - Thin-page warnings, missing intro boxes, stale pages
   - Bar charts via inline SVG
@@ -61,9 +61,7 @@ def scan_html(path: Path) -> dict:
 
 
 def classify_page(rel_path: str) -> str:
-    """Classify a page as L0, L1, L2, focus, glossary, search, or stats."""
-    if "glossary" in rel_path:
-        return "glossary"
+    """Classify a page as L0, L1, L2, focus, search, or stats."""
     if "search" in rel_path:
         return "search"
     if "stats" in rel_path:
@@ -127,13 +125,6 @@ def main():
     total_diagrams = sum(p["diagrams"] for p in pages)
     focus_count = sum(1 for p in pages if p["is_focus"])
 
-    # Glossary terms
-    glossary_terms = 0
-    for p in pages:
-        if p["level"] == "glossary":
-            text = Path(p["path"]).read_text(encoding="utf-8", errors="replace")
-            glossary_terms = len(re.findall(r"<dt", text))
-
     # Stale pages
     now = datetime.now()
     stale = []
@@ -156,7 +147,7 @@ def main():
     # Per-module stats
     modules = defaultdict(lambda: {"pages": 0, "lines": 0, "diagrams": 0, "focus": 0, "words": 0})
     for p in pages:
-        if p["level"] in ("glossary", "search", "stats"):
+        if p["level"] in ("search", "stats"):
             continue
         m = modules[p["module"]]
         m["pages"] += 1
@@ -231,7 +222,6 @@ th{{background:var(--surface);font-weight:600}}tr:nth-child(even){{background:va
 <div class="kpi"><div class="num">{total_lines:,}</div><div class="label">Total Lines</div></div>
 <div class="kpi"><div class="num">{total_words:,}</div><div class="label">Total Words</div></div>
 <div class="kpi"><div class="num">{total_diagrams}</div><div class="label">Diagrams</div></div>
-<div class="kpi"><div class="num">{glossary_terms}</div><div class="label">Glossary Terms</div></div>
 <div class="kpi"><div class="num">{focus_count}</div><div class="label">Focus Pages</div></div>
 <div class="kpi {'warn' if len(stale) > 0 else ''}"><div class="num">{len(stale)}</div><div class="label">Stale Pages</div></div>
 <div class="kpi {'warn' if len(thin) > 0 else ''}"><div class="num">{len(thin)}</div><div class="label">Thin Pages</div></div>
@@ -264,7 +254,7 @@ th{{background:var(--surface);font-weight:600}}tr:nth-child(even){{background:va
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html, encoding="utf-8")
     print(f"Dashboard written to: {out_path}")
-    print(f"  {total} pages, {total_diagrams} diagrams, {glossary_terms} glossary terms")
+    print(f"  {total} pages, {total_diagrams} diagrams")
     if stale:
         print(f"  ⚠ {len(stale)} stale page(s)")
     if thin:

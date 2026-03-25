@@ -22,7 +22,6 @@ TEMPLATES = [
     "l0-template.html",
     "l1-template.html",
     "l2-template.html",
-    "glossary-template.html",
     "search-template.html",
     "focus-template.html",
 ]

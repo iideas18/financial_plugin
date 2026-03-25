@@ -19,7 +19,6 @@ The JSON format is a nested tree:
         ...
       ]
     },
-    {"label": "Glossary", "path": "glossary.html", "children": []},
     {"label": "Search",  "path": "search.html",   "children": []}
   ]
 }
@@ -133,7 +132,7 @@ def build_tree(docs_dir):
     for entry in entries:
         entry_path = os.path.join(docs_dir, entry)
 
-        # Top-level HTML files (glossary, search)
+        # Top-level HTML files (search, stats)
         if os.path.isfile(entry_path) and entry.endswith('.html'):
             if entry in ('index.html', 'search.html'):
                 continue

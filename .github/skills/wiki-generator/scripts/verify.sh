@@ -81,20 +81,8 @@ for f in "$DOCS_DIR"/*_doc/*/index.html; do
   fi
 done
 
-# --- Check 6: Glossary links ---
-echo "[6/22] Glossary links in all pages"
-for f in "${FILES[@]}"; do
-  # Glossary page and search page don't need to link to glossary (search already has it)
-  [[ "$f" == *glossary.html ]] && continue
-  if ! grep -q 'glossary.html' "$f"; then
-    fail "$f — missing glossary link"
-  else
-    pass
-  fi
-done
-
-# --- Check 7: Minimum line counts ---
-echo "[7/22] Minimum line counts (300+ lines)"
+# --- Check 6: Minimum line counts ---
+echo "[6/22] Minimum line counts (300+ lines)"
 for f in "${FILES[@]}"; do
   # Search page and generated JSON companions are shorter by design
   [[ "$f" == *search.html || "$f" == *stats.html ]] && continue
@@ -106,10 +94,10 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 8: Mermaid diagram counts (2+ per page, except glossary) ---
-echo "[8/23] Mermaid diagrams (2+ per page)"
+# --- Check 7: Mermaid diagram counts (2+ per page) ---
+echo "[7/22] Mermaid diagrams (2+ per page)"
 for f in "${FILES[@]}"; do
-  [[ "$f" == *glossary.html || "$f" == *search.html || "$f" == *stats.html ]] && continue
+  [[ "$f" == *search.html || "$f" == *stats.html ]] && continue
   count=$(mermaid_count "$f")
   if [ "$count" -lt 2 ]; then
     warn "$f — only $count mermaid diagram(s) (recommend 2+)"
@@ -118,8 +106,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 9: Broken internal links ---
-echo "[9/23] Broken internal links"
+# --- Check 8: Broken internal links ---
+echo "[8/22] Broken internal links"
 for f in "${FILES[@]}"; do
   dir=$(dirname "$f")
   while IFS= read -r link; do
@@ -137,8 +125,8 @@ for f in "${FILES[@]}"; do
   done < <(grep -oP 'href="\K[^"]+' "$f" 2>/dev/null)
 done
 
-# --- Check 10: Skip-link (accessibility) ---
-echo "[10/23] Skip-link (accessibility)"
+# --- Check 9: Skip-link (accessibility) ---
+echo "[9/22] Skip-link (accessibility)"
 for f in "${FILES[@]}"; do
   if ! grep -q 'class="skip-link"' "$f"; then
     fail "$f — missing skip-link"
@@ -147,8 +135,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 11: aria-label on theme toggle ---
-echo "[11/23] aria-label on theme toggle"
+# --- Check 10: aria-label on theme toggle ---
+echo "[10/22] aria-label on theme toggle"
 for f in "${FILES[@]}"; do
   if ! grep -q 'aria-label="Toggle light/dark theme"' "$f"; then
     fail "$f — theme toggle missing aria-label"
@@ -157,8 +145,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 12: Main content wrapper ---
-echo "[12/23] Main content wrapper (<main id=\"main\">)"
+# --- Check 11: Main content wrapper ---
+echo "[11/22] Main content wrapper (<main id=\"main\">)"
 for f in "${FILES[@]}"; do
   if ! grep -q '<main id="main">' "$f"; then
     fail "$f — missing <main id=\"main\"> wrapper"
@@ -167,8 +155,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 13: Print stylesheet ---
-echo "[13/23] Print stylesheet (@media print)"
+# --- Check 12: Print stylesheet ---
+echo "[12/22] Print stylesheet (@media print)"
 for f in "${FILES[@]}"; do
   if ! grep -q '@media print' "$f"; then
     fail "$f — missing print stylesheet"
@@ -177,8 +165,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 14: Freshness metadata ---
-echo "[14/23] Freshness metadata (wiki-generated)"
+# --- Check 13: Freshness metadata ---
+echo "[13/22] Freshness metadata (wiki-generated)"
 for f in "${FILES[@]}"; do
   if ! grep -q 'wiki-generated' "$f"; then
     warn "$f — missing wiki-generated meta tag"
@@ -187,8 +175,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 15: Back-to-top button ---
-echo "[15/23] Back-to-top button"
+# --- Check 14: Back-to-top button ---
+echo "[14/22] Back-to-top button"
 for f in "${FILES[@]}"; do
   if ! grep -q 'backToTop' "$f"; then
     fail "$f — missing back-to-top button"
@@ -197,10 +185,10 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 16: Code copy button on L1/L2 ---
-echo "[16/23] Code copy button (L1/L2)"
+# --- Check 15: Code copy button on L1/L2 ---
+echo "[15/22] Code copy button (L1/L2)"
 for f in "${FILES[@]}"; do
-  [[ "$f" == *glossary.html || "$f" == *search.html ]] && continue
+  [[ "$f" == *search.html ]] && continue
   # Only check pages that have hljs (L1/L2)
   if grep -q 'highlightAll' "$f"; then
     if ! grep -q 'copy-btn' "$f"; then
@@ -211,10 +199,10 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 17: Diagram overlay (L0/L1/L2) ---
-echo "[17/23] Diagram overlay (L0/L1/L2)"
+# --- Check 16: Diagram overlay (L0/L1/L2) ---
+echo "[16/22] Diagram overlay (L0/L1/L2)"
 for f in "${FILES[@]}"; do
-  [[ "$f" == *glossary.html || "$f" == *search.html ]] && continue
+  [[ "$f" == *search.html ]] && continue
   if grep -q 'class="mermaid"' "$f"; then
     if ! grep -q 'diagramOverlay' "$f"; then
       fail "$f — missing diagram overlay"
@@ -224,8 +212,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 18: Source revision meta ---
-echo "[18/23] Source revision meta (wiki-source-rev)"
+# --- Check 17: Source revision meta ---
+echo "[17/22] Source revision meta (wiki-source-rev)"
 for f in "${FILES[@]}"; do
   if ! grep -q 'wiki-source-rev' "$f"; then
     warn "$f — missing wiki-source-rev meta tag"
@@ -234,10 +222,10 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 19: Reading time (L1/L2) ---
-echo "[19/23] Reading time estimate (L1/L2)"
+# --- Check 18: Reading time (L1/L2) ---
+echo "[18/22] Reading time estimate (L1/L2)"
 for f in "${FILES[@]}"; do
-  [[ "$f" == *glossary.html || "$f" == *search.html ]] && continue
+  [[ "$f" == *search.html ]] && continue
   if grep -q 'highlightAll' "$f"; then
     if ! grep -q 'min read' "$f"; then
       warn "$f — missing reading time estimate"
@@ -247,8 +235,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 20: Print hides new UI elements ---
-echo "[20/23] Print hides new UI elements"
+# --- Check 19: Print hides new UI elements ---
+echo "[19/22] Print hides new UI elements"
 for f in "${FILES[@]}"; do
   if grep -q '@media print' "$f"; then
     if ! grep -q 'back-to-top' "$f"; then
@@ -259,8 +247,8 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-# --- Check 21: Focus page parent meta ---
-echo "[21/23] Focus page parent meta"
+# --- Check 20: Focus page parent meta ---
+echo "[20/22] Focus page parent meta"
 mapfile -t FOCUS_FILES < <(find "$DOCS_DIR" -name '*.html' -path '*/*/*/index.html' -not -path '*/html/*' 2>/dev/null | sort)
 if [ ${#FOCUS_FILES[@]} -gt 0 ]; then
   for f in "${FOCUS_FILES[@]}"; do
@@ -278,8 +266,8 @@ else
   pass  # no focus pages yet
 fi
 
-# --- Check 22: Focus page back-link in parent ---
-echo "[22/23] Focus page back-link in parent L2"
+# --- Check 21: Focus page back-link in parent ---
+echo "[21/22] Focus page back-link in parent L2"
 for f in "${FOCUS_FILES[@]}"; do
   if grep -q 'wiki-focus-parent' "$f"; then
     parent_rel=$(grep -oP 'wiki-focus-parent.*?content="\K[^"]+' "$f" || true)
@@ -298,10 +286,10 @@ for f in "${FOCUS_FILES[@]}"; do
   fi
 done
 
-# --- Check 23: Extraction consistency on parent L2 pages ---
-echo "[23/23] Parent extraction consistency"
+# --- Check 22: Extraction consistency on parent L2 pages ---
+echo "[22/22] Parent extraction consistency"
 for f in "${FILES[@]}"; do
-  [[ "$f" == *glossary.html || "$f" == *search.html || "$f" == *stats.html ]] && continue
+  [[ "$f" == *search.html || "$f" == *stats.html ]] && continue
   if grep -q 'id="deep-dives"' "$f" && grep -q 'class="card-grid"' "$f"; then
     focus_links=$(grep -oE 'href="[^"]+/index\.html"' "$f" | grep -cE '/[^/"]+/index\.html"$' || true)
     inline_deep_dives=$(grep -c 'class="deep-dive"' "$f" || true)

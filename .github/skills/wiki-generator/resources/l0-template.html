@@ -13,7 +13,7 @@
     {{LANG}}             — Primary code language class (e.g., "cpp", "python")
 
   This is the top-level hub for multi-module projects.
-  It links to L1 module overviews and the glossary.
+  It links to L1 module overviews and the search page.
 -->
 <title>{{PROJECT_NAME}} — {{PROJECT_SUBTITLE}}</title>
 <style>
@@ -81,7 +81,7 @@ blockquote{border-left:3px solid var(--accent);margin:1rem 0;padding:.6rem 1rem;
 /* === Diagram fullscreen overlay === */
 .diagram-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:3000;align-items:center;justify-content:center;cursor:zoom-out}
 .diagram-overlay.active{display:flex}
-.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border)}
+.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border);transform-origin:center center}
 .diagram-container{cursor:zoom-in}
 #diagramOverlay.active svg,#diagramOverlayContent svg{max-width:90vw!important;max-height:85vh!important;width:90vw!important}
 
@@ -194,6 +194,19 @@ sequenceDiagram
 <strong>Key insight:</strong> ModuleA owns X (components above the boundary). ModuleB owns Y (components below). The protocol at the boundary is Z — it uses credit-based flow control so neither side overwhelms the other.
 </blockquote>
 
+<!-- DIRECTORY MAP — top-level project structure -->
+<h2 id="directory-map">Directory Map</h2>
+<details open>
+<summary style="cursor:pointer;color:var(--accent);font-weight:600;">Project source tree</summary>
+<pre style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-top:.5rem;font-size:.85rem;line-height:1.6;overflow-x:auto;"><code>project_root/
+├── moduleA/                   ← Brief role description
+├── moduleB/                   ← Brief role description
+├── moduleC/                   ← Brief role description
+├── shared/                    ← Shared utilities
+└── README.md
+</code></pre>
+</details>
+
 <!-- BUILD & TECH STACK (optional) -->
 <h2>Build &amp; Tech Stack</h2>
 <div class="card-grid">
@@ -202,8 +215,8 @@ sequenceDiagram
   <div class="card"><h4>Key Dependencies</h4><p>Major libraries and frameworks</p></div>
 </div>
 
-<!-- FOOTER with glossary link -->
-<div class="footer"><a href="glossary.html">Glossary</a> &nbsp;|&nbsp; {{PROJECT_NAME}} Wiki</div>
+<!-- FOOTER -->
+<div class="footer"><a href="search.html">Search</a> &nbsp;|&nbsp; {{PROJECT_NAME}} Wiki</div>
 </main>
 
 <div class="diagram-overlay" id="diagramOverlay"><div class="diagram-overlay-content" id="diagramOverlayContent"></div></div>
@@ -235,8 +248,8 @@ document.querySelectorAll('pre.mermaid').forEach(function(el){
   applyTheme(saved);
   btn.addEventListener('click',function(){applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');});
 })();
-// Diagram zoom
-(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){content.innerHTML=dc.innerHTML;overlay.classList.add('active');});});overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.remove('active');});document.addEventListener('keydown',function(e){if(e.key==='Escape')overlay.classList.remove('active');});})();
+// Diagram zoom with scroll-wheel support
+(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');var scale=1;function resetZoom(){scale=1;content.style.transform='scale(1)';}function openOverlay(dc){content.innerHTML='';var svg=dc.querySelector('svg');if(svg){var clone=svg.cloneNode(true);clone.style.maxWidth='90vw';clone.style.maxHeight='85vh';clone.style.width='90vw';content.appendChild(clone);}else{content.innerHTML=dc.innerHTML;}resetZoom();overlay.classList.add('active');}document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){openOverlay(dc);});});overlay.addEventListener('click',function(e){if(e.target===overlay){overlay.classList.remove('active');resetZoom();}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){overlay.classList.remove('active');resetZoom();}});content.addEventListener('wheel',function(e){if(!overlay.classList.contains('active'))return;e.preventDefault();var d=e.deltaY>0?-0.1:0.1;scale=Math.min(5,Math.max(0.5,scale+d));content.style.transform='scale('+scale+')';},{passive:false});})();
 // Back to top
 (function(){var b=document.getElementById('backToTop');window.addEventListener('scroll',function(){b.classList.toggle('visible',window.scrollY>400);});b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});})();
 </script>

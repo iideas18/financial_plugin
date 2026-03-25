@@ -39,8 +39,6 @@ def classify_page(rel: str) -> tuple:
     parts = Path(rel).parts
     if rel == "index.html":
         return (0, ""), "Hub"
-    if "glossary" in rel:
-        return (999, ""), "Glossary"
     if "search" in rel:
         return (998, ""), "Search"
     if "stats" in rel:
@@ -112,7 +110,7 @@ def main():
             if css:
                 combined_css.add(css)
 
-    # Sort pages: hub → L1 → L2 → focus → glossary
+    # Sort pages: hub → L1 → L2 → focus → search
     pages.sort(key=lambda p: p["sort_key"])
 
     # Build TOC

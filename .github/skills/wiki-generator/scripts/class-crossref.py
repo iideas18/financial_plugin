@@ -87,7 +87,6 @@ def build_class_index(docs: Path) -> dict:
         and not f.name.startswith("_")
         and "search" not in f.name
         and "stats" not in f.name
-        and "glossary" not in f.name
     ]
 
     for html_path in html_files:

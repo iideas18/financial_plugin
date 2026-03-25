@@ -121,7 +121,7 @@ pre code{background:none;padding:0}
 /* === Diagram fullscreen overlay === */
 .diagram-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:3000;align-items:center;justify-content:center;cursor:zoom-out}
 .diagram-overlay.active{display:flex}
-.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border)}
+.diagram-overlay .diagram-overlay-content{max-width:95vw;max-height:90vh;overflow:auto;background:var(--bg);border-radius:12px;padding:2rem;border:1px solid var(--border);transform-origin:center center}
 .diagram-container{cursor:zoom-in}
 #diagramOverlay.active svg,#diagramOverlayContent svg{max-width:90vw!important;max-height:85vh!important;width:90vw!important}
 
@@ -307,6 +307,17 @@ Result process(Input& input) {
   <!-- Add links to sibling focus pages or related L2 pages -->
 </ul>
 
+<!-- DIRECTORY MAP — files relevant to this focus topic -->
+<h2 id="directory-map">Directory Map</h2>
+<details open>
+<summary style="cursor:pointer;color:var(--accent);font-weight:600;">Source files for this topic</summary>
+<pre style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-top:.5rem;font-size:.85rem;line-height:1.6;overflow-x:auto;"><code>submod_name/
+├── relevant_file_a.ext        ← Role: brief annotation
+├── relevant_file_b.ext        ← Role: brief annotation
+└── relevant_file_c.ext        ← Role: brief annotation
+</code></pre>
+</details>
+
 <!-- NOTE: Keep the page rich enough to pass verify.sh.
      Good focus pages usually end up 400-600 lines with:
      - 2+ Mermaid diagrams
@@ -316,7 +327,7 @@ Result process(Input& input) {
 -->
 
 <!-- FOOTER -->
-<div class="footer"><a href="{{PARENT_PAGE_PATH}}">&larr; Back to {{SUBMOD_NAME}}</a> &bull; <a href="../../../glossary.html">Glossary</a></div>
+<div class="footer"><a href="{{PARENT_PAGE_PATH}}">&larr; Back to {{SUBMOD_NAME}}</a></div>
 </main>
 
 <div class="diagram-overlay" id="diagramOverlay"><div class="diagram-overlay-content" id="diagramOverlayContent"></div></div>
@@ -380,8 +391,8 @@ document.querySelectorAll('pre code').forEach(function(block){
   btn.addEventListener('click',function(){navigator.clipboard.writeText(block.textContent).then(function(){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},1500);});});
   pre.appendChild(btn);
 });
-// Diagram zoom
-(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){content.innerHTML=dc.innerHTML;overlay.classList.add('active');});});overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.remove('active');});document.addEventListener('keydown',function(e){if(e.key==='Escape')overlay.classList.remove('active');});})();
+// Diagram zoom with scroll-wheel support
+(function(){var overlay=document.getElementById('diagramOverlay');var content=document.getElementById('diagramOverlayContent');var scale=1;function resetZoom(){scale=1;content.style.transform='scale(1)';}function openOverlay(dc){content.innerHTML='';var svg=dc.querySelector('svg');if(svg){var clone=svg.cloneNode(true);clone.style.maxWidth='90vw';clone.style.maxHeight='85vh';clone.style.width='90vw';content.appendChild(clone);}else{content.innerHTML=dc.innerHTML;}resetZoom();overlay.classList.add('active');}document.querySelectorAll('.diagram-container').forEach(function(dc){dc.addEventListener('click',function(){openOverlay(dc);});});overlay.addEventListener('click',function(e){if(e.target===overlay){overlay.classList.remove('active');resetZoom();}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){overlay.classList.remove('active');resetZoom();}});content.addEventListener('wheel',function(e){if(!overlay.classList.contains('active'))return;e.preventDefault();var d=e.deltaY>0?-0.1:0.1;scale=Math.min(5,Math.max(0.5,scale+d));content.style.transform='scale('+scale+')';},{passive:false});})();
 // Back to top
 (function(){var b=document.getElementById('backToTop');window.addEventListener('scroll',function(){b.classList.toggle('visible',window.scrollY>400);});b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});})();
 // Keyboard navigation: j/k scroll H2

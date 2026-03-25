@@ -2,7 +2,7 @@
 # CI workflow for wiki quality validation.
 #
 # Runs verify.sh and stale-check.sh on push/PR to catch:
-#   - Missing theme toggles, intro boxes, glossary links
+#   - Missing theme toggles, intro boxes
 #   - Broken internal links
 #   - Thin pages, too few diagrams
 #   - Stale pages (>30 days since generation)
